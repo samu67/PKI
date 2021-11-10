@@ -1,0 +1,7 @@
+#!/bin/bash
+
+hosts=("fw" "db" "bkp" "ca" "www")
+
+for hname in "${hosts[@]}"; do
+  ./genconf -h "$hname"
+done

@@ -1,0 +1,238 @@
+#! /bin/bash
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+	key="$1"
+
+	case $key in
+	-h)
+		hname="$2"
+		shift # past argument
+		shift # past value
+		;;
+	*) # unknown option
+		POSITIONAL+=("$1") # save it in an array for later
+		shift # past argument
+		;;
+	esac
+done
+
+if [[ -z "$hname" ]]; then
+	echo -e "Usage: genconfs: genconfs -h <hostname>"
+	exit -1;
+fi
+
+# Define useful variables
+iffile="$hname""/interfaces";
+hfile="$hname""/hosts";
+nwfile="$hname""/networks";
+sysctlfile="$hname""/sysctl.conf";
+nftfile="$hname""/nftables.conf";
+
+dname="asl.local"
+
+core="10.0.1.";
+core_range="\24";
+dmz="10.0.2.";
+dmz_range="\24";
+
+fw_hname="fw";
+fw_ip="1";
+db_hname="db";
+db_ip="2";
+bkp_hname="bkp";
+bkp_ip="3";
+ca_hname="ca";
+ca_ip="4";
+www_hname="www";
+www_ip="2";
+
+
+# Checks hostname is one of the expected values
+if [[ "$hname" == "$fw_hname" ]]; then
+	echo -e "Starting to setup the firewall...";
+elif [[ "$hname" == "$db_hname" ]]; then
+	echo -e "Starting to setup the database...";
+elif [[ "$hname" == "$bkp_hname" ]]; then
+	echo -e "Starting to setup the backup server...";
+elif [[ "$hname" == "$ca_hname" ]]; then
+	echo -e "Starting to setup the ca...";
+elif [[ "$hname" == "$www_hname" ]]; then
+	echo -e "Starting to setup the web server...";
+else
+	echo -e "Unexpected hostname: Aborting";
+	exit -1;
+fi
+
+
+if [[ ! -e "$hname" ]]; then
+	mkdir "$hname";
+elif [[ ! -d "$hname" ]]; then
+	echo -e "output directory already exists but is a file please rename the file \"""$hname""\"";
+	exit -1;
+else 
+	rm -rf "$hname/*";
+fi
+
+# Setup /etc/network/interfaces
+
+echo -e ">Setup networking"
+echo -e ">>Generating /etc/network/interfaces"
+
+
+
+rm -f "$iffile"
+touch "$iffile"
+chmod 644 "$iffile"
+
+cat << EOF >> "$iffile";
+source /etc/network/interfaces.d/*"
+
+# Loopback
+auto lo
+iface lo inet loopback
+
+EOF
+
+if [[ "$hname" == "$fw_hname" ]]; then
+	cat << EOF >> "$iffile";
+auto enp0s9
+iface enp0s9 inet dhcp
+
+# Core network
+auto enp0s3
+iface enp0s3 inet static
+	address $core$fw_ip$core_range
+	broadcast ${core}255
+
+# www-DMZ
+auto enp0s9
+iface enp0s9 inet static
+	address $dmz$fw_ip$dmz_range
+	broadcast ${dmz}255
+EOF
+else
+	cat << EOF >> "$iffile";
+# Primary network interface
+auto enp0s3
+iface enp0s3 inet static
+EOF
+	if [[ "$hname" == "$db_hname" ]]; then
+		cat << EOF >> "$iffile";
+	address $core$db_ip$core_range
+	gateway $core$fw_ip
+	broadcast ${core}255
+EOF
+	elif [[ "$hname" == "$bkp_hname" ]]; then
+		cat << EOF >> "$iffile";
+	address $core$bkp_ip$core_range
+	gateway $core$fw_ip
+	broadcast ${core}255
+EOF
+	elif [[ "$hname" == "$ca_hname" ]]; then
+		cat << EOF >> "$iffile";
+	address $core$ca_ip$core_range
+	gateway $core$fw_ip
+	broadcast ${core}255
+EOF
+	elif [[ "$hname" == "$www_hname" ]]; then
+		cat << EOF >> "$iffile";
+	address $dmz$www_ip$dmz_range
+	gateway $dmz$fw_ip
+	broadcast ${dmz}255
+EOF
+	fi
+fi
+
+# Generate hosts file
+echo -e ">>Generating /etc/hosts"
+
+rm -f "$hfile"
+touch "$hfile"
+chmod 644 "$hfile"
+
+echo -e "127.0.0.1\tloopback" >> "$hfile";
+echo -e "127.0.1.1\t""$hname"".""$dname""\t""$hname" >> "$hfile";
+if [[ "$hname" != "$fw_hname" ]]; then
+	if [[ "$hname" == "$www_hname" ]]; then
+	echo -e "$dmz""$fw_ip""\t""$fw_hname"".""$dname""\t""$fw_hname" >> "$hfile";
+	else 
+	echo -e "$core""$fw_ip""\t""$fw_hname"".""$dname""\t""$fw_hname" >> "$hfile";
+	fi
+fi
+if [[ "$hname" != "$db_hname" ]]; then
+	echo -e "$core""$db_ip""\t""$db_hname"".""$dname""\t""$db_hname" >> "$hfile";
+fi
+if [[ "$hname" != "$bkp_hname" ]]; then
+	echo -e "$core""$bkp_ip""\t""$bkp_hname"".""$dname""\t""$bkp_hname" >> "$hfile";
+fi
+if [[ "$hname" != "$ca_hname" ]]; then
+	echo -e "$core""$ca_ip""\t""$ca_hname"".""$dname""\t""$ca_hname" >> "$hfile";
+fi
+if [[ "$hname" != "$www_hname" ]]; then
+	echo -e "$dmz""$www_ip""\t""$www_hname"".""$dname""\t""$www_hname" >> "$hfile";
+fi 
+
+# Remove link local ip address
+echo -e ">>Generating /etc/networks"
+
+rm -f "$nwfile"
+touch "$nwfile"
+chmod 644 "$nwfile"
+
+cat << EOF >> "$nwfile";
+default		0.0.0.0
+loopback	127.0.0.0
+#link-local	169.254.0.0
+EOF
+
+# Enable forwarding if fw
+if [[ "$hname" == "$fw_hname" ]]; then
+	echo -e ">Generating /etc/sysctl.conf";
+	rm -f "$sysctlfile";
+	touch "$sysctlfile";
+	chmod 644 "$sysctlfile";
+	echo -e "net.ipv4.ip_forward=1" >> "$sysctlfile";
+fi
+
+# Setup nftables
+rm -f "$nftfile";
+touch "$nftfile";
+chmod 644 "$nftfile";
+
+echo -e ">Generating /etc/nftables.conf";
+
+cat << EOF >> "$nftfile";
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+	chain input {
+		type filter hook input priority 0;
+	}
+	chain output {
+		type filter hook input priority 0;
+	}
+	chain forward {
+		type filter hook input priority 0;
+	}
+}
+EOF
+
+if [[ "$hname" == "$fw_hname" ]]; then
+	cat << EOF >> "$nftfile";
+
+table inet nat {
+	chain prerouting {
+		type nat hook prerouting priority 0;
+	}
+	chain postrouting {
+		type nat hook postrouting priority 100; policy accept;
+		oif enp0s9 masquerade;
+	}
+}
+EOF
+fi
+
+
