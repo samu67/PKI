@@ -11,6 +11,8 @@ rm -rf "$hname/*";
 ```
 (and yes, `$hname` is the argument to the script oopsie)
 
+Also, it might be possible the names of the interfaces I had on my VMs are different than yours so if networking doesn't work, please check in `/etc/network/interfaces` and `/etc/nftables.conf` that the correct interface names show up.
+
 ## `confgen`: 
 To generate the configuration files of a machine with hostname `HOSTNAME`:
 
