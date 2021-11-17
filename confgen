@@ -31,10 +31,13 @@ nftfile="$hname""/nftables.conf";
 
 dname="asl.local"
 
-core="10.0.1.";
-core_range="\24";
-dmz="10.0.2.";
-dmz_range="\24";
+core="10.0.0.";
+core_range="/24";
+dmz="10.0.1.";
+dmz_range="/24";
+private="10.0.0.0";
+private_range="/23";
+
 
 fw_hname="fw";
 fw_ip="1";
@@ -209,23 +212,80 @@ flush ruleset
 
 table inet filter {
 	chain input {
-		type filter hook input priority 0;
+		type filter hook input priority 0; policy drop;
+		iif "lo" accept
+		ct state invalid drop
+		ip protocol icmp icmp type echo-request limit rate 2/second accept
+		ip protocol icmp icmp type echo-request counter packets 0 bytes 0 log prefix " ++DROP: No ping floods++ " drop
+		icmp type { destination-unreachable, router-advertisement, router-solicitation, time-exceeded, parameter-problem } accept
+		ip protocol igmp accept
+		ip6 nexthdr ipv6-icmp icmpv6 type echo-request limit rate 1/second accept
+		ip6 nexthdr ipv6-icmp icmpv6 type echo-request counter packets 0 bytes 0 log prefix " ++DROP: No ping floods++ " drop
+		icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-done, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, ind-neighbor-solicit, ind-neighbor-advert, mld2-listener-report } accept comment "Accept ICMPv6"
+		ct state established,related accept
+		meta l4proto udp ct state new jump udp_input
+		meta l4proto udp reject
+		tcp flags & (fin | syn | rst | ack) == syn ct state new jump tcp_input
+		meta l4proto tcp reject with tcp reset
 	}
-	chain output {
-		type filter hook input priority 0;
+
+	chain udp_input {
+		log prefix " ++DROP: udp++ " drop
 	}
+
 	chain forward {
-		type filter hook input priority 0;
+		type filter hook forward priority 0; policy drop;
+	}
+
+	chain output {
+		type filter hook output priority 0; policy accept;
+	}
+
+	chain tcp_input {
+		tcp dport 22 accept
+EOF
+
+if [[ "$hname" == "$db_hname" ]]; then
+	cat << EOF >> "$nftfile";
+		tcp dport https ip saddr ${dmz}${www_ip} accept
 	}
 }
 EOF
 
-if [[ "$hname" == "$fw_hname" ]]; then
+elif [[ "$hname" == "$ca_hname" ]]; then
 	cat << EOF >> "$nftfile";
+		tcp dport https ip saddr ${dmz}${www_ip} accept
+		tcp dport https ip saddr ${core}${db_ip} accept
+	}
+}
+EOF
+
+elif [[ "$hname" == "$www_hname" ]]; then
+	cat << EOF >> "$nftfile";
+		tcp dport { http, https } accept
+	}
+}
+EOF
+
+elif [[ "$hname" == "$bkp_hname" ]]; then
+	cat << EOF >> "$nftfile";
+	}
+}
+EOF
+
+elif [[ "$hname" == "$fw_hname" ]]; then
+	cat << EOF >> "$nftfile";
+	}
+}
 
 table inet nat {
 	chain prerouting {
-		type nat hook prerouting priority 0;
+		type nat hook prerouting priority -100;
+		tcp dport { http, https } dnat to ${dmz}${www_ip}
+		tcp dport 2202 dnat to ${core}${db_ip}:22
+		tcp dport 2203 dnat to ${core}${bkp_ip}:22
+		tcp dport 2204 dnat to ${core}${ca_ip}:22
+		tcp dport 2212 dnat to ${dmz}${www_ip}:22
 	}
 	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
