@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 style="text-align: center">Credentials</h1>
+
+    <div class="form">
+        <table>
+            <tbody>
+                <tr>
+                <td>User Name</td>
+                <td>my User Name</td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="text" name="username" id="username", placeholder="my new username">
+                    </form>
+                </td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="submit" value="update">
+                    </form>
+                </td>
+              </tr>
+              <tr>
+                <td>Last Name</td>
+                <td>my Last Name</td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="text" name="username" id="username", placeholder="my new last name">
+                    </form>
+                </td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="submit" value="update">
+                    </form>
+                </td>
+              </tr>
+              <tr>
+                <td>First Name</td>
+                <td>my First Name</td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="text" name="username" id="username", placeholder="my new first name">
+                    </form>
+                </td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="submit" value="update">
+                    </form>
+                </td>
+              </tr>
+              <tr>
+                <td>email</td>
+                <td>my email</td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="text" name="username" id="username", placeholder="my new email">
+                    </form>
+                </td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="submit" value="update">
+                    </form>
+                </td>
+              </tr>
+              <tr>
+                <td>Password</td>
+                <td>maybe password</td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="text" name="username" id="username", placeholder="my new password">
+                    </form>
+                </td>
+                <td>
+                    <form action="/" method="POST">
+                        <input type="submit" value="update">
+                    </form>
+                </td>
+              </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

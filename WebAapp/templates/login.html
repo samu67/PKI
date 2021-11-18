@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <div style="text-align: center" class="form">
+        <form action="/" method="POST">
+            <input type="text" name="username" id="username", placeholder="username">
+            <input type="password" name="password" id="password", placeholder="password">
+            <input type="submit" value="Login">
+        </form>
+    </div>
+    <style>
+      body {
+        background-image: url(https://source.unsplash.com/1400x1200/?neon&flash&disco);
+        background-repeat: no-repeat;
+        background-attachment: ;
+        background-position: right;
+        border: 2px solid #000000;
+
+      }
+    </style>
+    <h1>Sign In</h1>
+    <h4></h4>
+
+</div>
+{% endblock %}

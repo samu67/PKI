@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block body %}
+
+    <div class="form" >
+
+    <style>
+      body {
+        background-image: url(https://source.unsplash.com/1400x1200/?art);
+        background-repeat: repeat;
+        background-attachment: ;
+        background-position: right;
+        border: 2px solid #000000;
+
+      }
+    </style>
+        <table>
+
+
+            <h3>
+               <form action={{"/requestNewCert/" + user["uid"]}} method="POST">
+                   <input type="submit" value="Request New Certificate">
+                </form>
+                </h3>
+            <h3>
+                       <form action={{"/downloadCrl/" + user["uid"]}} method="POST">
+                    <input type="submit" value="DownloadCrl">
+                </form>
+            </h3>
+
+            <h3>
+                <form  action={{"/logout/" + user["uid"]}} method="POST">
+                    <input type="submit" value="Log Out">
+                </form>
+            </h3>
+
+        </table>
+
+
+    </div>
+
+    </div>
+    <h1>About me </h1>
+    <div class="userCredentials">
+        <table>
+            <tbody>
+                <tr>
+                <td>User Name</td>
+                <td>{{ user.userID}}</td>
+
+                    <form action={{"/updateUserName/"+ user["uid"]}} method="POST">
+                        <td>
+                             <input type="text" name="newUsername" id="newUsername", placeholder="my new username">
+                        </td>
+                        <td>
+                             <input type="submit" value="update">
+                        </td>
+
+
+                    </form>
+
+                <td>
+
+                </td>
+              </tr>
+              <tr>
+                <td>Last Name</td>
+                <td>{{ user.lastName}}</td>
+
+                    <form action={{"/updateLastName/"+ user["uid"]}} method="POST">
+                        <td>
+                              <input type="text" name="newLastName" id="newLastName", placeholder="my new last name">
+                        </td>
+                        <td>
+                             <input type="submit" value="update">
+                        </td>
+
+
+                    </form>
+
+              </tr>
+              <tr>
+                <td>First Name</td>
+                <td>{{ user.firstName}}</td>
+
+                    <form action={{"/updateFirstName/"+ user["uid"]}} method="POST">
+                        <td>
+                            <input type="text" name="newFirstName" id="newFirstName", placeholder="my new first name">
+                        </td>
+                        <td>
+                             <input type="submit" value="update">
+                        </td>
+
+
+                    </form>
+
+                <td>
+                </td>
+              </tr>
+              <tr>
+                <td>email</td>
+                <td>{{ user.email}}</td>
+
+                    <form  action={{"/updateEmail/"+ user["uid"]}} method="POST">
+                        <td>
+                            <input type="text" name="newEmail" id="newEmail", placeholder="my new email">
+                        </td>
+                        <td>
+                                                 <input type="submit" value="update">
+                        </td>
+
+
+                    </form>
+
+
+              </tr>
+              <tr>
+                <td>Password</td>
+                  <form action={{"/updatePassword/"+ user["uid"]}} method="POST">
+                    <td>
+
+                        <input type="password" name="currentPassword" id="currentPassword", placeholder="my current password">
+                    </td>
+
+                    <td>
+                      <input type="password" name="newPassword0" id="newPassword0", placeholder="my new password">
+                    </td>
+                      <td>
+                          <input type="password" name="newPassword1" id="newPassword1", placeholder="my new password">
+                      </td>
+                      <td>
+                        <input type="submit" value="update">
+                     </td>
+                  </form>
+              </tr>
+            </tbody>
+        </table>
+    </div>
+
+
+
+    <div class=".myCert">
+        <h1>My Certificates </h1>
+        <table>
+
+            {%for cert in certs%}
+                <tr>
+                    <td>
+                        {{cert.cert}}
+                    </td>
+                    <td>
+
+                    <td>
+                        {%if not cert.revoked%}
+
+                        <form  action="/revokeCert/{{user.userID}}${{cert.serialN}}" method="POST">
+                            <input type="submit" value="Revoke">
+                        </form>
+                        {%endif%}
+                    </td>
+                </tr>
+            {%endfor%}
+        </table>
+
+    </div>
+{% endblock %}
