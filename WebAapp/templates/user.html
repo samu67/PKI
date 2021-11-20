@@ -10,7 +10,7 @@
 
     <style>
       body {
-        background-image: url(https://source.unsplash.com/1400x1200/?art);
+        background-image: url(https://source.unsplash.com/1400x1200/?cat);
         background-repeat: repeat;
         background-attachment: ;
         background-position: right;
@@ -22,18 +22,18 @@
 
 
             <h3>
-               <form action={{"/requestNewCert/" + user["uid"]}} method="POST">
+               <form action="/requestNewCert/{{credentials["uid"]}}" method="POST">
                    <input type="submit" value="Request New Certificate">
                 </form>
-                </h3>
+            </h3>
             <h3>
-                       <form action={{"/downloadCrl/" + user["uid"]}} method="POST">
+                       <form action={{"/downloadCrl/" + credentials["uid"]}} method="POST">
                     <input type="submit" value="DownloadCrl">
                 </form>
             </h3>
 
             <h3>
-                <form  action={{"/logout/" + user["uid"]}} method="POST">
+                <form  action={{"/logout/" + credentials["uid"]}} method="POST">
                     <input type="submit" value="Log Out">
                 </form>
             </h3>
@@ -50,18 +50,7 @@
             <tbody>
                 <tr>
                 <td>User Name</td>
-                <td>{{ user.userID}}</td>
-
-                    <form action={{"/updateUserName/"+ user["uid"]}} method="POST">
-                        <td>
-                             <input type="text" name="newUsername" id="newUsername", placeholder="my new username">
-                        </td>
-                        <td>
-                             <input type="submit" value="update">
-                        </td>
-
-
-                    </form>
+                <td>{{ credentials["uid"]}}</td>
 
                 <td>
 
@@ -69,9 +58,9 @@
               </tr>
               <tr>
                 <td>Last Name</td>
-                <td>{{ user.lastName}}</td>
+                <td>{{ credentials["lastname"]}}</td>
 
-                    <form action={{"/updateLastName/"+ user["uid"]}} method="POST">
+                    <form action={{"/updateLastName/"+ credentials["uid"]}} method="POST">
                         <td>
                               <input type="text" name="newLastName" id="newLastName", placeholder="my new last name">
                         </td>
@@ -85,9 +74,9 @@
               </tr>
               <tr>
                 <td>First Name</td>
-                <td>{{ user.firstName}}</td>
+                <td>{{ credentials["firstname"]}}</td>
 
-                    <form action={{"/updateFirstName/"+ user["uid"]}} method="POST">
+                    <form action={{"/updateFirstName/"+ credentials["uid"]}} method="POST">
                         <td>
                             <input type="text" name="newFirstName" id="newFirstName", placeholder="my new first name">
                         </td>
@@ -103,14 +92,14 @@
               </tr>
               <tr>
                 <td>email</td>
-                <td>{{ user.email}}</td>
+                <td>{{ credentials["email"]}}</td>
 
-                    <form  action={{"/updateEmail/"+ user["uid"]}} method="POST">
+                    <form  action={{"/updateEmail/"+ credentials["uid"]}} method="POST">
                         <td>
                             <input type="text" name="newEmail" id="newEmail", placeholder="my new email">
                         </td>
                         <td>
-                                                 <input type="submit" value="update">
+                            <input type="submit" value="update">
                         </td>
 
 
@@ -120,7 +109,8 @@
               </tr>
               <tr>
                 <td>Password</td>
-                  <form action={{"/updatePassword/"+ user["uid"]}} method="POST">
+
+                  <form action="/updatePassword/{{credentials["uid"]}}" method="POST">
                     <td>
 
                         <input type="password" name="currentPassword" id="currentPassword", placeholder="my current password">
@@ -147,20 +137,21 @@
         <h1>My Certificates </h1>
         <table>
 
-            {%for cert in certs%}
+            {%for cert in certs["certs"] %}
                 <tr>
                     <td>
-                        {{cert.cert}}
+                        {{cert}}
+
                     </td>
                     <td>
-
+     {{cert['sn']}}
                     <td>
-                        {%if not cert.revoked%}
 
-                        <form  action="/revokeCert/{{user.userID}}${{cert.serialN}}" method="POST">
+
+                        <form  action="/revokeCert/{{credentials["uid"]}}${{credentials["uid"]}}" method="POST">
                             <input type="submit" value="Revoke">
                         </form>
-                        {%endif%}
+
                     </td>
                 </tr>
             {%endfor%}
