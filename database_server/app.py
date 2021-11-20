@@ -93,7 +93,7 @@ def certificates():  # put application's code here
         db.session.add(new_cert_entry)
         db.session.commit()
 
-        data = {"uid":provided_user,"cert": new_cert}
+        data = {"uid":provided_user,"cert": new_cert, "serialnumber": SN}
         return data
 
 
