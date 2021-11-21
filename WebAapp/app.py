@@ -7,7 +7,7 @@ import requests
 app = Flask(__name__)
 
 
-url = "http://127.0.0.1:8000"
+url = "http://127.0.0.1:5000"
 
 
 @app.route('/', methods = ['POST', 'GET'])
@@ -32,7 +32,7 @@ def login():
                 return render_template('login.html')
             #check if user is admin, if so render admin
         except:
-            return 'faild to connect to db'
+            return 'failed to connect to db'
     elif request.method == 'GET':
         return render_template('login.html')
 
@@ -48,7 +48,7 @@ def getUserInfo(uid):
         certs = requests.get(url +"/certificates", json={'uid':uid}).json()
         return (credentials,certs)
     except:
-        return "faild to connect to db"
+        return "failed to connect to db"
 
 
 
@@ -58,39 +58,40 @@ def updateLastName(uid):
     newLastName = request.form['newLastName']
     try:
 
-        response = requests.post(url +"/credentials", json={"uid":uid, "lastname":newLastName, "pwd": "", "firstname": "", "email": ""}).json()
-        if response["Success"]:
+        response = requests.put(url +"/credentials", json={"uid":uid, "lastname":newLastName, "pwd": "", "firstname": "", "email": ""}).json()
+        if response["Success"] == 1:
             return redirect('/user/'+uid)
         else:
-           return "update uncessessfull"
+           return "update unsuccessful"
+
     except:
-         return "faild to connect to server"
+         return "failed to connect to server"
 
 
 @app.route('/updateFirstName/<string:uid>', methods=['POST'])
 def updateFirstName(uid):
     newFirstName = request.form['newFirstName']
     try:
-        response = requests.post(url +"/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname':newFirstName, 'email': ""}).json()
-        if response == "Success":
+        response = requests.put(url +"/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname':newFirstName, 'email': ""}).json()
+        if (response["Success"] == 1):
             return redirect('/user/'+uid)
         else:
            return "update uncessessfull"
     except:
-         return "faild to connect to server"
+         return "failed to connect to server"
 
 
 @app.route('/updateEmail/<string:uid>', methods=['POST'])
 def updateEmail(uid):
     newEmail = request.form['newEmail']
     try:
-        response = requests.post(url +"/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname': "", 'email':newEmail}).json()
-        if response == "Success":
+        response = requests.put(url +"/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname': "", 'email':newEmail}).json()
+        if response["Success"] == 1:
             return redirect('/user/'+uid)
         else:
            return "update uncessessfull"
     except:
-         return "faild to connect to server"
+         return "failed to connect to server"
 
     return redirect('/user/uid')
 @app.route('/updatePassword/<string:uid>', methods=['POST'])
@@ -103,8 +104,8 @@ def updatePassword(uid):
         response = requests.post(url +"/login", json={'uid':uid, 'pwd':currentPassword}).json()
         if response['valid']:
             if(newPassword1==newPassword0):
-                response = requests.post(url +"/credentials", json={'uid':uid, 'lastname': "", 'pwd':newPassword1, 'firstname': "", 'email': ""}).json()
-                if response == "Success":
+                response = requests.put(url +"/credentials", json={'uid':uid, 'lastname': "", 'pwd':newPassword1, 'firstname': "", 'email': ""}).json()
+                if response ["Success"] == 1:
                     return redirect('/user/'+uid)
                 else:
                    return "update uncessessfull"
@@ -113,7 +114,7 @@ def updatePassword(uid):
         else:
             return "please reenter your current password"
     except:
-         return "faild to connect to server"
+         return "failed to connect to server"
 
 
 
@@ -123,22 +124,22 @@ def updatePassword(uid):
 def requestNewCert(uid):
     try:
         response = requests.post(url +"/certificates", json={'uid':uid}).json()
-        if response.cert != None:
+        if response["cert"] != None:
             return redirect('/user/'+uid)
         else:
-            return "faild to issue new cert"
+            return "failed to issue new cert"
     except:
-        return "faild to connect to server"
+        return "failed to connect to server"
 
 
 @app.route('/downloadCrl/<string:uid>', methods=['POST'])
 def downloadCrl(uid):
     try:
-        crl = requests.get(url+"/revoked").json()
+        crl = requests.get(url+"/revoked")
         return redirect('/user/'+uid)
         #somehow start downloading crl on user page
     except:
-        return "faild to connect to db"
+        return "failed to connect to db"
 
 
 
@@ -150,13 +151,13 @@ def logout(uid):
 @app.route('/revokeCert/<string:uid>$<string:serialN>', methods=['POST'])
 def revokeCert(uid, serialN):
     try:
-        response = requests.post(url +"/revoked", json={'uid':uid, "serialnumber":serialN}).json()
+        response = requests.put(url +"/revoked", json={'uid':uid, "serialnumber":serialN}).json()
         if(response["Success"==1]):
             return redirect('/user/'+uid)
         else:
-            return "revokation unsuccessfull"
+            return "revokation unsuccessful"
     except:
-        return "faild to connect to db"
+        return "failed to connect to db"
 
 
 if __name__ == "__main__":

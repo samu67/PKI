@@ -21,7 +21,7 @@ class userID_passwdHash(db.Model):
         return '<New Credential %r> %self.userID'
 
 class userID_certs(db.Model):
-    serialnumber = db.Column(db.Integer, primary_key=True)
+    serialnumber = db.Column(db.String, primary_key=True)
     uid = db.Column(db.String, nullable=False)
     cert = db.Column(db.String(20), nullable=False)
     revoked = db.Column(db.Boolean, nullable=False)
@@ -31,6 +31,6 @@ class userID_certs(db.Model):
 class stats(db.Model):
     nIssuedCerts = db.Column(db.Integer, nullable=False)
     nRevokedCerts = db.Column(db.Integer, nullable=False)
-    currentSN = db.Column(db.Integer, primary_key=True)
+    currentSN = db.Column(db.String, primary_key=True)
     def __repr__(self):
         return '<New Credential %r> %self.nIssuedCerts'

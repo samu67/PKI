@@ -1,14 +1,18 @@
-from flask import Flask, request
+import json
+
+from flask import Flask, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 import requests
-
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography import x509
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
 db = SQLAlchemy(app)
 from db import Credentials, userID_certs, userID_passwdHash, stats
-CA_SERVER = ""
-CA_SERVER_CRL=""
+CA_SERVER = "http://127.0.0.1:6000/"
+CA_SERVER_CRL= ""
 
 
 @app.route('/')
@@ -22,7 +26,7 @@ def login():  # put application's code here
     provided_user = content["uid"]
     provided_password = content["pwd"]
     match = Credentials.query.filter_by(uid = provided_user, pwd = provided_password).all()
-    valid = len(match)== 1
+    valid = len(match) == 1
     data = {"uid": provided_user, "valid": valid} # Your data in JSON-serializable type
     return data
 
@@ -53,7 +57,8 @@ def credentials():  # put application's code here
         if(provided_password != ""):
             match.pwd = provided_password
         db.session.commit()
-        return "Success"
+        data = {"Success": 1}
+        return data
 
 @app.route('/certificates', methods=['GET', 'POST'])
 def certificates():  # put application's code here
@@ -76,24 +81,27 @@ def certificates():  # put application's code here
         provided_user = content["uid"]
 
         #pass on to ca
-        #r = requests.post(CA_SERVER, json={"uid": provided_user})
+        dummykey = ec.generate_private_key(ec.SECP384R1())
+        r = requests.post(CA_SERVER+"requestCert", json={"uid": provided_user, "pk" : (dummykey.public_key().public_bytes(encoding=serialization.Encoding.PEM,
+                                                             format=serialization.PublicFormat.SubjectPublicKeyInfo)).decode("utf-8") } )
 
         #parse again
-        #newcert = r.json()["cert"]
-        new_cert = "TESTCERTIFICATE"
+        new_cert = x509.load_pem_x509_certificate(r.content)
+        SN = new_cert.serial_number
+        #new_cert = "TESTCERTIFICATE"
 
         #update cert database
         #have to find new serial number
         #possible race condition?
-        match = stats.query.all()[0]
+        match = stats.query.all() [0]
         match.nIssuedCerts +=1
-        match.currentSN += 1
-        SN = match.currentSN
-        new_cert_entry = userID_certs(serialnumber = SN , uid=provided_user, cert=new_cert, revoked=False)
+        match.currentSN = str(SN)
+        new_cert_entry = userID_certs(serialnumber = str(SN) , uid=provided_user, cert=(r.content).decode("utf-8"), revoked=False)
         db.session.add(new_cert_entry)
         db.session.commit()
 
-        data = {"uid":provided_user,"cert": new_cert, "serialnumber": SN}
+        #encode when it arrives
+        data = {"uid":provided_user,"cert": (r.content).decode("utf-8"), "serialnumber": SN}
         return data
 
 
@@ -102,25 +110,26 @@ def revoked():  # put application's code here
     #GET: Receive the CRL
     if request.method == 'GET':
 
-        #r = requests.get(CA_SERVER_CRL)
-        #crl = r.content()
+        r = requests.get(CA_SERVER+"getCRL")
+        crl = r.content
 
-        crl = open("crl", "w")
-        crl.write("This is a crl")
+
 
         #note this is flask request, not python requestS
         #not sure if the type is correct
-        return request.send_file(crl)
+        return crl
 
     #PUT: Revoke a cert for that user
     else:
         content = request.get_json()
         provided_user = content["uid"]
         provided_SN = content["serialnumber"]
-        #r = requests.put(CA_SERVER, json={"uid": provided_user, "serialnumber": provided_SN})
+        jsonheader = {"content-type": "application/json"}
+        jsondata ={"serialnumber": provided_SN}
+        r = requests.post(CA_SERVER+"revokeCert", headers=jsonheader, data=json.dumps(jsondata))
         if True:
         #if r.status_code == requests.codes.ok:
-            certmatch = userID_certs.query.filter_by(uid = provided_user, serialnumber=provided_SN).first()
+            certmatch = userID_certs.query.filter_by(uid = provided_user, serialnumber=provided_SN, revoked=False).first()
             certmatch.revoked=True
             statmatch = stats.query.all()[0]
             statmatch.nRevokedCerts +=1
@@ -129,6 +138,7 @@ def revoked():  # put application's code here
         else:
             data = {"Success": 0}
         return data
+
 @app.route('/certificate_stats', methods=['GET'])
 def get_Certificate_Stats():  # put application's code here
     match = stats.query.all()[0]
