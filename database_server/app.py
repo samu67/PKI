@@ -69,7 +69,7 @@ def certificates():  # put application's code here
         matches = userID_certs.query.filter_by(uid = provided_user, revoked=False).all()
         certs=[]
         for match in matches:
-            certs.append(match.cert)
+            certs.append((match.cert, match.serialnumber))
         #does not return user
         data = {"certs": certs}
         return data
@@ -95,8 +95,10 @@ def certificates():  # put application's code here
         #possible race condition?
         match = stats.query.all() [0]
         match.nIssuedCerts +=1
-        match.currentSN = str(SN)
-        new_cert_entry = userID_certs(serialnumber = str(SN) , uid=provided_user, cert=(r.content).decode("utf-8"), revoked=False)
+        #str function would convert bigint to scientific notation
+        stringSN = f'{SN}'
+        match.currentSN = stringSN
+        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=(r.content).decode("utf-8"), revoked=False)
         db.session.add(new_cert_entry)
         db.session.commit()
 
@@ -121,6 +123,7 @@ def revoked():  # put application's code here
 
     #PUT: Revoke a cert for that user
     else:
+        #test
         content = request.get_json()
         provided_user = content["uid"]
         provided_SN = content["serialnumber"]

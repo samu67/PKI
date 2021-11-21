@@ -46,7 +46,7 @@ def getUserInfo(uid):
     try:
         credentials = requests.get(url +"/credentials", json={'uid':uid}).json()
         certs = requests.get(url +"/certificates", json={'uid':uid}).json()
-        return (credentials,certs)
+        return (credentials , certs)
     except:
         return "failed to connect to db"
 
@@ -152,7 +152,7 @@ def logout(uid):
 def revokeCert(uid, serialN):
     try:
         response = requests.put(url +"/revoked", json={'uid':uid, "serialnumber":serialN}).json()
-        if(response["Success"==1]):
+        if(response["Success"]==1):
             return redirect('/user/'+uid)
         else:
             return "revokation unsuccessful"

@@ -140,15 +140,15 @@
             {%for cert in certs["certs"] %}
                 <tr>
                     <td>
-                        {{cert}}
+                        {{cert[0]}}
 
                     </td>
                     <td>
-     {{cert['sn']}}
+     {{cert[1]}}
                     <td>
 
 
-                        <form  action="/revokeCert/{{credentials["uid"]}}${{credentials["uid"]}}" method="POST">
+                        <form  action="/revokeCert/{{credentials["uid"]}}${{cert[1]}}" method="POST">
                             <input type="submit" value="Revoke">
                         </form>
 
