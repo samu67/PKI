@@ -9,7 +9,7 @@ with open("CAkey.pem", "wb") as f:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
     ))
-f.close()
+    f.close()
 
 ServerKey = ec.generate_private_key(ec.SECP384R1())
 with open("ServerKey.pem", "wb") as f:
@@ -18,7 +18,7 @@ with open("ServerKey.pem", "wb") as f:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
     ))
-f.close()
+    f.close()
 
 DBkey = ec.generate_private_key(ec.SECP384R1())
 with open("DBkey.pem", "wb") as f:
@@ -27,4 +27,4 @@ with open("DBkey.pem", "wb") as f:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
     ))
-f.close()
+    f.close()
