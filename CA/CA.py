@@ -28,7 +28,7 @@ class CA:
         return
 
     # Issues certificate.
-    # Requires name and public key (in PEM format) of individual who wants the certificate.
+    # Requires name and password of client who wants the certificate.
     # Returns the issued certificate in pkcs12 format as well as the freshly generated private and public keys of the
     # client as PEM files (the private key is encrypted with the client's password encoded to bytes in utf-8,
     # as is the pkcs12 certificate)
