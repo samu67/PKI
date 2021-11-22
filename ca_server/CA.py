@@ -10,15 +10,11 @@ import datetime
 
 
 class CA:
-    def __init__(self):
-        self.ca_privatekey= ec.generate_private_key(ec.SECP384R1())
-        with open("CAkey.pem", "wb") as f2:
-            f2.write(self.ca_privatekey.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
-            ))
-            f2.close()
+    def __init__(self, keyfilepath):
+        keyfile = open(keyfilepath, "r")
+        self.rawkey = keyfile.read()
+        keyfile.close()
+        self.ca_privatekey = serialization.load_pem_private_key(self.rawkey, password=b"password")
         self.ca_name = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
         ])
