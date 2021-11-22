@@ -5,6 +5,7 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import pkcs12
 import datetime
 
 
@@ -28,10 +29,13 @@ class CA:
         return
 
     # Issues certificate.
-    # Requires name and public key (in PEM format) of individual who wants the certificate.
-    # Returns the issued certificate in X.509 format as PEM file
-    def issuecert(self, name, pk):
-        clientkey = serialization.load_pem_public_key(pk)
+    # Requires name and password of client who wants the certificate.
+    # Returns the issued certificate in pkcs12 format as well as the freshly generated private and public keys of the
+    # client as PEM files (the private key is encrypted with the client's password encoded to bytes in utf-8,
+    # as is the pkcs12 certificate)
+    def issuecert(self, name):
+        clientprivkey = ec.generate_private_key(ec.SECP384R1())
+        clientkey = clientprivkey.public_key()
         subject = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, name),
         ])
@@ -48,7 +52,11 @@ class CA:
         ).not_valid_after(
             datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year+1)
         ).sign(self.ca_privatekey, hashes.SHA256())
-        return cert.public_bytes(serialization.Encoding.PEM)
+        pkcs12cert = pkcs12.serialize_key_and_certificates(name=name.encode("utf-8"), key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(b"A"))
+        return pkcs12cert, clientprivkey.private_bytes(encoding=serialization.Encoding.PEM,
+                format = serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm = serialization.BestAvailableEncryption(b"A")), clientkey.public_bytes(encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL)
 
     # Revokes certificate using information provided by the datatbase (currently we assume the provided data consists of
     # serial number of the certificate to be revoked)
