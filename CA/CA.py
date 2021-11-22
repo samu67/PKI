@@ -51,7 +51,7 @@ class CA:
         ).not_valid_after(
             datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year+1)
         ).sign(self.ca_privatekey, hashes.SHA256())
-        pkcs12cert = pkcs12.serialize_key_and_certificates(name=name, key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(pw.encode("utf-8")))
+        pkcs12cert = pkcs12.serialize_key_and_certificates(name=name.encode("utf-8"), key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(pw.encode("utf-8")))
         return pkcs12cert, clientprivkey.private_bytes(encoding=serialization.Encoding.PEM,
                 format = serialization.PrivateFormat.TraditionalOpenSSL,
                 encryption_algorithm = serialization.BestAvailableEncryption(pw.encode("utf-8"))), clientkey.public_bytes(encoding=serialization.Encoding.PEM,
