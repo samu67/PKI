@@ -29,9 +29,12 @@ class CA:
 
     # Issues certificate.
     # Requires name and public key (in PEM format) of individual who wants the certificate.
-    # Returns the issued certificate in X.509 format as PEM file
-    def issuecert(self, name, pk):
-        clientkey = serialization.load_pem_public_key(pk)
+    # Returns the issued certificate in pkcs12 format as well as the freshly generated private and public keys of the
+    # client as PEM files (the private key is encrypted with the client's password encoded to bytes in utf-8,
+    # as is the pkcs12 certificate)
+    def issuecert(self, name, pw):
+        clientprivkey = ec.generate_private_key(ec.SECP384R1())
+        clientkey = clientprivkey.public_key()
         subject = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, name),
         ])
@@ -48,7 +51,11 @@ class CA:
         ).not_valid_after(
             datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year+1)
         ).sign(self.ca_privatekey, hashes.SHA256())
-        return cert.public_bytes(serialization.Encoding.PEM)
+        pkcs12cert = pkcs12.serialize_key_and_certificates(name=name, key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(pw.encode("utf-8")))
+        return pkcs12cert, clientprivkey.private_bytes(encoding=serialization.Encoding.PEM,
+                format = serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm = serialization.BestAvailableEncryption(pw.encode("utf-8"))), clientkey.public_bytes(encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL)
 
     # Revokes certificate using information provided by the datatbase (currently we assume the provided data consists of
     # serial number of the certificate to be revoked)
