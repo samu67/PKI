@@ -8,13 +8,16 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import pkcs12
 import datetime
 
+#what i had to do
+#line17: encode
+#line 54: format
 
 class CA:
     def __init__(self, keyfilepath):
         keyfile = open(keyfilepath, "r")
         self.rawkey = keyfile.read()
         keyfile.close()
-        self.ca_privatekey = serialization.load_pem_private_key(self.rawkey, password=b"password")
+        self.ca_privatekey = serialization.load_pem_private_key((self.rawkey).encode("utf-8"), password=b"password")
         self.ca_name = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
         ])
@@ -48,11 +51,8 @@ class CA:
         ).not_valid_after(
             datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year+1)
         ).sign(self.ca_privatekey, hashes.SHA256())
-        pkcs12cert = pkcs12.serialize_key_and_certificates(name=name.encode("utf-8"), key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(b"A"))
-        return pkcs12cert, clientprivkey.private_bytes(encoding=serialization.Encoding.PEM,
-                format = serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm = serialization.BestAvailableEncryption(b"A")), clientkey.public_bytes(encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL)
+        pkcs12cert = pkcs12.serialize_key_and_certificates(name=name.encode("utf-8"), key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(b"A"), cas=None)
+        return pkcs12cert
 
     # Revokes certificate using information provided by the datatbase (currently we assume the provided data consists of
     # serial number of the certificate to be revoked)
@@ -72,4 +72,3 @@ class CA:
     # Returns current CRL in PEM format
     def getCRL(self):
         return self.crl.sign(private_key=self.ca_privatekey, algorithm=hashes.SHA256()).public_bytes(serialization.Encoding.PEM)
-

@@ -1,10 +1,13 @@
 import hashlib
+import base64
+
 
 from flask import Flask, render_template, url_for, request, redirect, session
 import requests
 from userinput import updateCredentials, SignIn, RevokeCert
 import hashlib
 from datetime import timedelta
+from cryptography.hazmat.primitives.serialization import pkcs12
 
 
 
@@ -36,10 +39,10 @@ def login():
 
             #use bcrypt on sha1 hash for better security, needs also change on db
 
-            #response = requests.post(db_url + "/login", json={'uid': uid, 'pwd': password_sh1_hash}).json()
+            response = requests.post(db_url + "/login", json={'uid': uid, 'pwd': password_sh1_hash}).json()
 
-            #if response['valid']:
-            if True:
+            if response['valid']:
+
                 #do some session management
                 session['uid'] = uid
                 session.permanent = True
@@ -62,17 +65,25 @@ def user():
         revoke = RevokeCert()
         #i should get everyting form db with the username
         (credentials,certs) = getUserInfo(uid)
+
+
+        #encodedbytes = certs["certs"][0][0]
+        #decodedbytes = base64.urlsafe_b64decode(encodedbytes)
+        # senc decodedbytes to client, he can then load it with pkcs12.load_key_and_certificates
+        #(current_key, current_cert, _) = pkcs12.load_key_and_certificates(decodedbytes, b"A")
+        #test = current_cert.subject
+
         return render_template('user.html', credentials=credentials, certs=certs,form=form, revoke=revoke)
     else:
         return redirect(url_for("login"))
 
 def getUserInfo(uid):
     try:
-        #credentials = requests.get(url +"/credentials", json={'uid':uid}).json()
-        #certs = requests.get(url +"/certificates", json={'uid':uid}).json()
-        credentials = {"uid": "test", "firstname": "test", "lastname":"test", "email":"test"}
-        certs = [("test",123),("test",123)]
-        certs = {"certs":certs}
+        credentials = requests.get(db_url +"/credentials", json={'uid':uid}).json()
+        certs = requests.get(db_url +"/certificates", json={'uid':uid}).json()
+        #credentials = {"uid": "test", "firstname": "test", "lastname":"test", "email":"test"}
+        #certs = [("test",123),("test",123)]
+        #certs = {"certs":certs}
         return (credentials , certs)
     except:
         return "failed to connect to db"
@@ -91,7 +102,7 @@ def updateLastName():
 
             response = requests.put(db_url + "/credentials", json={"uid":uid, "lastname":newLastName, "pwd": "", "firstname": "", "email": ""}).json()
             if response["Success"] == 1:
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                return "update unsuccessful"
 
@@ -110,7 +121,7 @@ def updateFirstName():
         try:
             response = requests.put(db_url + "/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname':newFirstName, 'email': ""}).json()
             if (response["Success"] == 1):
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                return "update uncessessfull"
         except:
@@ -127,13 +138,13 @@ def updateEmail():
         try:
             response = requests.put(db_url + "/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname': "", 'email':newEmail}).json()
             if response["Success"] == 1:
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                return "update uncessessfull"
         except:
              return "failed to connect to server"
 
-    return redirect('/user/uid')
+    return redirect('/user')
 @app.route('/updatePassword', methods=['POST'])
 def updatePassword():
     form = updateCredentials()
@@ -144,14 +155,22 @@ def updatePassword():
         newPassword2 = form.password1.data
         newPassword1 = form.password2.data
 
+
         #passowrd eql validator doesn't work, doing it manually for now
         try:
-            response = requests.post(db_url + "/login", json={'uid':uid, 'pwd':currentPassword}).json()
+            hash_alg = hashlib.sha1()
+            hash_alg.update(currentPassword.encode())
+            password_sh1_hash = hash_alg.hexdigest()
+            response = requests.post(db_url + "/login", json={'uid':uid, 'pwd':password_sh1_hash}).json()
             if response['valid']:
+
                 if(newPassword1 == newPassword2):
-                    response = requests.put(db_url + "/credentials", json={'uid':uid, 'lastname': "", 'pwd':newPassword1, 'firstname': "", 'email': ""}).json()
+                    new_hash_alg = hashlib.sha1()
+                    new_hash_alg.update(newPassword1.encode())
+                    new_password_sh1_hash = new_hash_alg.hexdigest()
+                    response = requests.put(db_url + "/credentials", json={'uid':uid, 'lastname': "", 'pwd':new_password_sh1_hash, 'firstname': "", 'email': ""}).json()
                     if response ["Success"] == 1:
-                        return redirect('/user/'+uid)
+                        return redirect('/user')
                     else:
                        return "update uncessessfull"
                 else:
@@ -193,7 +212,7 @@ def downloadCrl():
             response.headers.set('Content-Type', 'application/text')
             response.headers.set('Content-Disposition', 'attachment', filename=filename)
             #somehow start downloading crl on user page
-            return redirect('/user/'+uid)
+            return redirect('/user')
         except:
             return "failed to connect to db"
 
@@ -205,6 +224,7 @@ def logout():
     session.pop("uid", None)
     return redirect(url_for("login"))
 
+
 @app.route('/revokeCert/<string:serialN>', methods=['POST'])
 def revokeCert(serialN):
     if "uid" in session:
@@ -213,7 +233,7 @@ def revokeCert(serialN):
         try:
             response = requests.put(db_url + "/revoked", json={'uid':uid, "serialnumber":serialN}).json()
             if(response["Success"]==1):
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                 return "revokation unsuccessful"
         except:

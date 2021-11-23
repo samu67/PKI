@@ -5,7 +5,9 @@ from flask_sqlalchemy import SQLAlchemy
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography import x509
+import base64
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
@@ -82,11 +84,9 @@ def certificates():  # put application's code here
 
         #pass on to ca
         dummykey = ec.generate_private_key(ec.SECP384R1())
-        r = requests.post(CA_SERVER+"requestCert", json={"uid": provided_user, "pk" : (dummykey.public_key().public_bytes(encoding=serialization.Encoding.PEM,
-                                                             format=serialization.PublicFormat.SubjectPublicKeyInfo)).decode("utf-8") } )
-
+        r = requests.post(CA_SERVER+"requestCert", json={"uid": provided_user} )
+        (key, new_cert, _) = pkcs12.load_key_and_certificates(r.content, b'A')
         #parse again
-        new_cert = x509.load_pem_x509_certificate(r.content)
         SN = new_cert.serial_number
         #new_cert = "TESTCERTIFICATE"
 
@@ -98,12 +98,15 @@ def certificates():  # put application's code here
         #str function would convert bigint to scientific notation
         stringSN = f'{SN}'
         match.currentSN = stringSN
-        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=(r.content).decode("utf-8"), revoked=False)
+        #todo later
+        b64cert = base64.urlsafe_b64encode(r.content).decode("ASCII")
+        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=b64cert, revoked=False, publickey = "" ,privatekey="")
         db.session.add(new_cert_entry)
         db.session.commit()
 
         #encode when it arrives
-        data = {"uid":provided_user,"cert": (r.content).decode("utf-8"), "serialnumber": SN}
+
+        data = {"uid":provided_user,"cert": b64cert, "serialnumber": SN}
         return data
 
 
@@ -159,7 +162,7 @@ def fill_db():  # inactivate before deploying!
     for user in users:
         db.session.add(user)
     initialstats = stats(nIssuedCerts=0,nRevokedCerts=0,currentSN=0)
-    db.session.add(initialstats)
+    #db.session.add(initialstats)
 
     db.session.commit()
     return "Success"
