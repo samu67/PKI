@@ -23,13 +23,14 @@ with open("CAkey.pem", "wb") as f:
 
 
 # The following block is essentially the default way to generate a key-pair and certificate for
-# any kind of server. If you need more certificates, just copy this and replace the variable names where necessary,
-# the name of the pem file and the name of the subject.
+# any kind of server and write it all to a file.
+# If you need more certificates, just copy this and replace the variable names (where necessary),
+# the name of the pem files and the name of the subject.
 # Generate private and public key of the server
 ServerKey = ec.generate_private_key(ec.SECP384R1())
 ServerPubKey = ServerKey.public_key()
 with open("ServerKey.pem", "wb") as f:
-    f.write(CAkey.private_bytes(
+    f.write(ServerKey.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
@@ -40,7 +41,7 @@ with open("ServerKey.pem", "wb") as f:
 subject = x509.Name([
     x509.NameAttribute(NameOID.COMMON_NAME, u"Server"),
 ])
-cert = x509.CertificateBuilder().subject_name(
+server_cert = x509.CertificateBuilder().subject_name(
     subject
 ).issuer_name(
     ca_name
@@ -54,6 +55,10 @@ cert = x509.CertificateBuilder().subject_name(
     datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 1)
 ).sign(CAkey, hashes.SHA256())
 
+# Wrtie cert to file
+with open("ServerCert.pem", "wb") as f:
+    f.write(server_cert.public_bytes(encoding=serialization.Encoding.PEM))
+    f.close()
 
 
 
@@ -62,7 +67,7 @@ cert = x509.CertificateBuilder().subject_name(
 DBkey = ec.generate_private_key(ec.SECP384R1())
 DbPubKey = DBkey.public_key()
 with open("DBkey.pem", "wb") as f:
-    f.write(CAkey.private_bytes(
+    f.write(DBkey.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
@@ -73,7 +78,7 @@ with open("DBkey.pem", "wb") as f:
 subject = x509.Name([
     x509.NameAttribute(NameOID.COMMON_NAME, u"Database"),
 ])
-cert = x509.CertificateBuilder().subject_name(
+db_cert = x509.CertificateBuilder().subject_name(
     subject
 ).issuer_name(
     ca_name
@@ -86,3 +91,8 @@ cert = x509.CertificateBuilder().subject_name(
 ).not_valid_after(
     datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 1)
 ).sign(CAkey, hashes.SHA256())
+
+# Wrtie cert to file
+with open("DBcert.pem", "wb") as f:
+    f.write(db_cert.public_bytes(encoding=serialization.Encoding.PEM))
+    f.close()
