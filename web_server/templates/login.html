@@ -8,9 +8,12 @@
 <div class="content">
     <div style="text-align: center" class="form">
         <form action="/" method="POST">
-            <input type="text" name="username" id="username", placeholder="username">
-            <input type="password" name="password" id="password", placeholder="password">
-            <input type="submit" value="Login">
+            {{form.hidden_tag()}}
+            {{form.username.label(class="form-control-label")}}
+            {{form.username(class="form-control form-control-lg")}}
+            {{form.password.label(class="form-control-label")}}
+            {{form.password(class="form-control form-control-lg")}}
+            {{form.login(class="btn btn-outline-info")}}
         </form>
     </div>
     <style>

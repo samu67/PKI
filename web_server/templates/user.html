@@ -22,18 +22,18 @@
 
 
             <h3>
-               <form action="/requestNewCert/{{credentials["uid"]}}" method="POST">
+               <form action={{url_for("requestNewCert")}} method="POST">
                    <input type="submit" value="Request New Certificate">
                 </form>
             </h3>
             <h3>
-                       <form action={{"/downloadCrl/" + credentials["uid"]}} method="POST">
+                       <form action={{url_for("downloadCrl")}} method="POST">
                     <input type="submit" value="DownloadCrl">
                 </form>
             </h3>
 
             <h3>
-                <form  action={{"/logout/" + credentials["uid"]}} method="POST">
+                <form  action={{url_for("logout")}} method="POST">
                     <input type="submit" value="Log Out">
                 </form>
             </h3>
@@ -60,12 +60,13 @@
                 <td>Last Name</td>
                 <td>{{ credentials["lastname"]}}</td>
 
-                    <form action={{"/updateLastName/"+ credentials["uid"]}} method="POST">
+                    <form action={{url_for("updateLastName")}} method="POST">
+                        {{form.hidden_tag()}}
                         <td>
-                              <input type="text" name="newLastName" id="newLastName", placeholder="my new last name">
+                              {{form.lastname(class="form-control form-control-lg")}}
                         </td>
                         <td>
-                             <input type="submit" value="update">
+                             {{form.update(class="btn btn-outline-info")}}
                         </td>
 
 
@@ -76,12 +77,13 @@
                 <td>First Name</td>
                 <td>{{ credentials["firstname"]}}</td>
 
-                    <form action={{"/updateFirstName/"+ credentials["uid"]}} method="POST">
+                    <form action={{url_for("updateFirstName")}} method="POST">
+                        {{form.hidden_tag()}}
                         <td>
-                            <input type="text" name="newFirstName" id="newFirstName", placeholder="my new first name">
+                              {{form.firstname(class="form-control form-control-lg")}}
                         </td>
                         <td>
-                             <input type="submit" value="update">
+                             {{form.update(class="btn btn-outline-info")}}
                         </td>
 
 
@@ -94,12 +96,13 @@
                 <td>email</td>
                 <td>{{ credentials["email"]}}</td>
 
-                    <form  action={{"/updateEmail/"+ credentials["uid"]}} method="POST">
+                    <form  action={{url_for("updateEmail")}} method="POST">
+                        {{form.hidden_tag()}}
                         <td>
-                            <input type="text" name="newEmail" id="newEmail", placeholder="my new email">
+                              {{form.email(class="form-control form-control-lg")}}
                         </td>
                         <td>
-                            <input type="submit" value="update">
+                             {{form.update(class="btn btn-outline-info")}}
                         </td>
 
 
@@ -110,20 +113,21 @@
               <tr>
                 <td>Password</td>
 
-                  <form action="/updatePassword/{{credentials["uid"]}}" method="POST">
+                  <form action={{url_for("updatePassword")}} method="POST">
+                    {{form.hidden_tag()}}
                     <td>
 
-                        <input type="password" name="currentPassword" id="currentPassword", placeholder="my current password">
+                        {{form.current_password(class="form-control form-control-lg")}}
                     </td>
 
                     <td>
-                      <input type="password" name="newPassword0" id="newPassword0", placeholder="my new password">
+                      {{form.password1(class="form-control form-control-lg")}}
                     </td>
                       <td>
-                          <input type="password" name="newPassword1" id="newPassword1", placeholder="my new password">
+                          {{form.password2(class="form-control form-control-lg")}}
                       </td>
                       <td>
-                        <input type="submit" value="update">
+                        {{form.update(class="btn btn-outline-info")}}
                      </td>
                   </form>
               </tr>
@@ -147,8 +151,8 @@
      {{cert[1]}}
                     <td>
 
+                        <form  action={{url_for("revokeCert",serialN=cert[1])}} method="POST">
 
-                        <form  action="/revokeCert/{{credentials["uid"]}}${{cert[1]}}" method="POST">
                             <input type="submit" value="Revoke">
                         </form>
 
