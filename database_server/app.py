@@ -5,15 +5,13 @@ from flask_sqlalchemy import SQLAlchemy
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography import x509
-import base64
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
 db = SQLAlchemy(app)
 from db import Credentials, userID_certs, userID_passwdHash, stats
-CA_SERVER = "http://127.0.0.1:6000/"
+CA_SERVER = "https://ca.imovies.com/"
 CA_SERVER_CRL= ""
 
 
@@ -115,7 +113,7 @@ def revoked():  # put application's code here
     #GET: Receive the CRL
     if request.method == 'GET':
 
-        r = requests.get(CA_SERVER+"getCRL")
+        r = requests.get(CA_SERVER+"getCRL",verify='/home/usr/app/CAPubKey.pem')
         crl = r.content
 
 
@@ -132,7 +130,7 @@ def revoked():  # put application's code here
         provided_SN = content["serialnumber"]
         jsonheader = {"content-type": "application/json"}
         jsondata ={"serialnumber": provided_SN}
-        r = requests.post(CA_SERVER+"revokeCert", headers=jsonheader, data=json.dumps(jsondata))
+        r = requests.post(CA_SERVER+"revokeCert", headers=jsonheader, data=json.dumps(jsondata),verify='/home/usr/app/CAPubKey.pem')
         if True:
         #if r.status_code == requests.codes.ok:
             certmatch = userID_certs.query.filter_by(uid = provided_user, serialnumber=provided_SN, revoked=False).first()
@@ -169,5 +167,4 @@ def fill_db():  # inactivate before deploying!
 
 
 if __name__ == '__main__':
-
-    app.run()
+    app.run(host='0.0.0.0')
