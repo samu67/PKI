@@ -90,7 +90,7 @@ def updateLastName():
 
             response = requests.put(db_url + "/credentials", json={"uid":uid, "lastname":newLastName, "pwd": "", "firstname": "", "email": ""},verify='/home/usr/app/CAPubKey.pem').json()
             if response["Success"] == 1:
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                return "update unsuccessful"
 
@@ -109,7 +109,7 @@ def updateFirstName():
         try:
             response = requests.put(db_url + "/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname':newFirstName, 'email': ""},verify='/home/usr/app/CAPubKey.pem').json()
             if (response["Success"] == 1):
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                return "update uncessessfull"
         except:
@@ -126,13 +126,13 @@ def updateEmail():
         try:
             response = requests.put(db_url + "/credentials", json={'uid': uid, 'lastname': "", 'pwd': "", 'firstname': "", 'email':newEmail},verify='/home/usr/app/CAPubKey.pem').json()
             if response["Success"] == 1:
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                return "update uncessessfull"
         except:
              return "failed to connect to server"
 
-    return redirect('/user/uid')
+    return redirect('/user')
 @app.route('/updatePassword', methods=['POST'])
 def updatePassword():
     form = updateCredentials()
@@ -150,7 +150,7 @@ def updatePassword():
                 if(newPassword1 == newPassword2):
                     response = requests.put(db_url + "/credentials", json={'uid':uid, 'lastname': "", 'pwd':newPassword1, 'firstname': "", 'email': ""},verify='/home/usr/app/CAPubKey.pem').json()
                     if response ["Success"] == 1:
-                        return redirect('/user/'+uid)
+                        return redirect('/user')
                     else:
                        return "update uncessessfull"
                 else:
@@ -192,7 +192,7 @@ def downloadCrl():
             response.headers.set('Content-Type', 'application/text')
             response.headers.set('Content-Disposition', 'attachment', filename=filename)
             #somehow start downloading crl on user page
-            return redirect('/user/'+uid)
+            return redirect('/user')
         except:
             return "failed to connect to db"
 
@@ -212,7 +212,7 @@ def revokeCert(serialN):
         try:
             response = requests.put(db_url + "/revoked", json={'uid':uid, "serialnumber":serialN},verify='/home/usr/app/CAPubKey.pem').json()
             if(response["Success"]==1):
-                return redirect('/user/'+uid)
+                return redirect('/user')
             else:
                 return "revokation unsuccessful"
         except:
