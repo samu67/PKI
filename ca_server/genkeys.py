@@ -6,6 +6,9 @@ from cryptography.hazmat.primitives import hashes
 from secrets import token_urlsafe
 import datetime
 
+
+ca_key_password = token_urlsafe(32)
+
 # Define name attribute of CA
 ca_name = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
@@ -13,21 +16,47 @@ ca_name = x509.Name([
 
 # Generate signing key of CA
 CAkey = ec.generate_private_key(ec.SECP384R1())
-with open("out/CAkey.pem", "wb") as f:
+with open("out/_CAkey.pem", "wb") as f:
     f.write(CAkey.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
+        encryption_algorithm=serialization.BestAvailableEncryption(ca_key_password.encode()),
     ))
     f.close()
 
+with open(f"out/_CAKeyPassword.txt", "w") as f:
+    f.write(ca_key_password)
+    f.write("\n")
+    f.close()
+
+CACert = x509.CertificateBuilder().subject_name(
+    ca_name
+).issuer_name(
+    ca_name
+).public_key(
+    CAkey.public_key()
+).serial_number(
+    x509.random_serial_number()
+).not_valid_before(
+    datetime.datetime.utcnow()
+).not_valid_after(
+    datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 1)
+).add_extension(
+    x509.BasicConstraints(ca=True, path_length=None), critical=True
+).sign(
+    CAkey, hashes.SHA256()
+)
+
+with open(f"out/_CACert.pem", "wb") as f:
+    f.write(CACert.public_bytes(encoding=serialization.Encoding.PEM))
+    f.close()
 
 def gen_key_cert_signed(ca_name, CAkey, Server_name, password=None):
 
     if password == None:
         password = token_urlsafe(32)
     
-    # Generate private and public key of the database
+    # Generate private and public key
     Key = ec.generate_private_key(ec.SECP384R1())
     PubKey = Key.public_key()
     with open(f"out/{Server_name}-Key.pem", "wb") as f:
@@ -43,9 +72,9 @@ def gen_key_cert_signed(ca_name, CAkey, Server_name, password=None):
         f.write("\n")
         f.close()
 
-    # Generate certificate for the database
+    # Generate certificate
         subject = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, Server_name),
+        x509.NameAttribute(NameOID.COMMON_NAME, Server_name + ".imovies.com"),
     ])
         db_cert = x509.CertificateBuilder().subject_name(
         subject
