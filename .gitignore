@@ -4,6 +4,9 @@ db
 www
 fw
 
+__pycache__
+.vscode
+
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,linux
