@@ -100,7 +100,7 @@ def certificates():  # put application's code here
         match.currentSN = stringSN
         #todo later
         b64cert = base64.urlsafe_b64encode(r.content).decode("ASCII")
-        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=b64cert, revoked=False, publickey = "" ,privatekey="")
+        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=b64cert, revoked=False)
         db.session.add(new_cert_entry)
         db.session.commit()
 
