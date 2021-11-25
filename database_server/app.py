@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import pkcs12
+import base64
 from cryptography import x509
 
 app = Flask(__name__)
@@ -82,7 +84,7 @@ def certificates():  # put application's code here
 
         #pass on to ca
         dummykey = ec.generate_private_key(ec.SECP384R1())
-        r = requests.post(CA_SERVER+"requestCert", json={"uid": provided_user} )
+        r = requests.post(CA_SERVER+"requestCert", json={"uid": provided_user},verify='/home/usr/app/CAPubKey.pem')
         (key, new_cert, _) = pkcs12.load_key_and_certificates(r.content, b'A')
         #parse again
         SN = new_cert.serial_number

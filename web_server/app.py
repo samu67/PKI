@@ -28,9 +28,7 @@ def login():
         uid = form.username.data
         password = form.password.data
 
-        hash_alg = hashlib.sha1()
-        hash_alg.update(password.encode())
-        password_sh1_hash = hash_alg.hexdigest()
+        password_sh1_hash = hash_pwd(password)
         try:
 
             # use bcrypt on sha1 hash for better security, needs also change on db
@@ -53,6 +51,15 @@ def login():
     else:
         return render_template('login.html', form=form)
 
+
+def hash_pwd(password):
+    hash_alg = hashlib.sha1()
+    hash_alg.update(password.encode())
+    password_sh1_hash = hash_alg.hexdigest()
+    return password_sh1_hash
+
+
+
 @app.route('/user', methods=['GET'])
 def user():
     if "uid" in session:
@@ -71,7 +78,6 @@ def getUserInfo(uid):
         certs = requests.get(db_url +"/certificates", json={'uid':uid},verify='/home/usr/app/CAPubKey.pem').json()
         #credentials = {"uid": "test", "firstname": "test", "lastname":"test", "email":"test"}
         #certs = [("test",123),("test",123)]
-        certs = {"certs":certs}
         return (credentials , certs)
     except:
         return "failed to connect to db"
@@ -139,9 +145,9 @@ def updatePassword():
     if form.validate_on_submit and "uid" in session:
         uid = session["uid"]
 
-        currentPassword = form.current_password.data
-        newPassword2 = form.password1.data
-        newPassword1 = form.password2.data
+        currentPassword = hash_pwd(form.current_password.data)
+        newPassword2 = hash_pwd(form.password1.data)
+        newPassword1 = hash_pwd(form.password2.data)
 
         #passowrd eql validator doesn't work, doing it manually for now
         try:
