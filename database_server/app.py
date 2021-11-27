@@ -10,7 +10,7 @@ import base64
 from cryptography import x509
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@localhost/imovies'
 db = SQLAlchemy(app)
 from db import Credentials, userID_certs, userID_passwdHash, stats
 CA_SERVER = "https://ca.imovies.com/"
@@ -162,7 +162,7 @@ def fill_db():  # inactivate before deploying!
     for user in users:
         db.session.add(user)
     initialstats = stats(nIssuedCerts=0,nRevokedCerts=0,currentSN=0)
-    #db.session.add(initialstats)
+    db.session.add(initialstats)
 
     db.session.commit()
     return "Success"
