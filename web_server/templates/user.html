@@ -140,22 +140,47 @@
     <div class=".myCert">
         <h1>My Certificates </h1>
         <table>
+            <tr>
+                <th>
+                    Serial Number
+                </th>
+                <th>
+                    Not Valid Before
+                </th>
+                <th>
+                    Not Valid After
+                </th>
+                <th>
+                    Revoke
+                </th>
+                <th>
+                    Download
+                </th>
 
-            {%for cert in certs["certs"] %}
+            </tr>
+
+            {%for cert in certs %}
                 <tr>
                     <td>
                         {{cert[0]}}
+                    </td>
 
+                    <td>
+                        {{cert[1]}}
+                    </td>
+
+                    <td>
+                        {{cert[2]}}
                     </td>
                     <td>
-     {{cert[1]}}
-                    <td>
-
                         <form  action={{url_for("revokeCert",serialN=cert[1])}} method="POST">
-
                             <input type="submit" value="Revoke">
                         </form>
-
+                    </td>
+                    <td>
+                        <form  action={{url_for("downloadPK12",serialN=cert[1])}} method="GET">
+                            <input type="submit" value="Download">
+                        </form>
                     </td>
                 </tr>
             {%endfor%}

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'user.html' %}
 
 {% block head %}
 
@@ -8,11 +8,197 @@
 <div class="user">
     <div class="form">
         <nav>
-            <a href="./aboutme.html">Number of Issued Certificates</a>
-            <a href="./requestCert.html">Number of Revoked Certificate</a>
-            <a href="./getRevokeCert.html">Current Serial Number</a>
-            <a href="./crl.html">CRL</a>
+            <table>
+            <tr>
+            <td >Current Serial Number : {{stats["CurrentSN"]}}</td>
+            <td >Number of Issued Certificates : {{stats["nIssuedCerts"]}}</td>
+            <td >Number of Revoked Certificate : {{stats["nRevokedCerts"]}} </td>
+            </tr>
+                </table>
         </nav>
     </div>
 </div>
+
+
+    <div class="form" >
+
+    <style>
+      body {
+        background-image: url(https://source.unsplash.com/1400x1200/?cat);
+        background-repeat: repeat;
+        background-attachment: ;
+        background-position: right;
+        border: 2px solid #000000;
+
+      }
+    </style>
+        <table>
+
+
+            <h3>
+               <form action={{url_for("requestNewCert")}} method="POST">
+                   <input type="submit" value="Request New Certificate">
+                </form>
+            </h3>
+            <h3>
+                       <form action={{url_for("downloadCrl")}} method="POST">
+                    <input type="submit" value="DownloadCrl">
+                </form>
+            </h3>
+
+            <h3>
+                <form  action={{url_for("logout")}} method="POST">
+                    <input type="submit" value="Log Out">
+                </form>
+            </h3>
+
+        </table>
+
+
+    </div>
+
+    </div>
+    <h1>About me </h1>
+    <div class="userCredentials">
+        <table>
+            <tbody>
+                <tr>
+                <td>User Name</td>
+                <td>{{ credentials["uid"]}}</td>
+
+                <td>
+
+                </td>
+              </tr>
+              <tr>
+                <td>Last Name</td>
+                <td>{{ credentials["lastname"]}}</td>
+
+                    <form action={{url_for("updateLastName")}} method="POST">
+                        {{form.hidden_tag()}}
+                        <td>
+                              {{form.lastname(class="form-control form-control-lg")}}
+                        </td>
+                        <td>
+                             {{form.update(class="btn btn-outline-info")}}
+                        </td>
+
+
+                    </form>
+
+              </tr>
+              <tr>
+                <td>First Name</td>
+                <td>{{ credentials["firstname"]}}</td>
+
+                    <form action={{url_for("updateFirstName")}} method="POST">
+                        {{form.hidden_tag()}}
+                        <td>
+                              {{form.firstname(class="form-control form-control-lg")}}
+                        </td>
+                        <td>
+                             {{form.update(class="btn btn-outline-info")}}
+                        </td>
+
+
+                    </form>
+
+                <td>
+                </td>
+              </tr>
+              <tr>
+                <td>email</td>
+                <td>{{ credentials["email"]}}</td>
+
+                    <form  action={{url_for("updateEmail")}} method="POST">
+                        {{form.hidden_tag()}}
+                        <td>
+                              {{form.email(class="form-control form-control-lg")}}
+                        </td>
+                        <td>
+                             {{form.update(class="btn btn-outline-info")}}
+                        </td>
+
+
+                    </form>
+
+
+              </tr>
+              <tr>
+                <td>Password</td>
+
+                  <form action={{url_for("updatePassword")}} method="POST">
+                    {{form.hidden_tag()}}
+                    <td>
+
+                        {{form.current_password(class="form-control form-control-lg")}}
+                    </td>
+
+                    <td>
+                      {{form.password1(class="form-control form-control-lg")}}
+                    </td>
+                      <td>
+                          {{form.password2(class="form-control form-control-lg")}}
+                      </td>
+                      <td>
+                        {{form.update(class="btn btn-outline-info")}}
+                     </td>
+                  </form>
+              </tr>
+            </tbody>
+        </table>
+    </div>
+
+
+
+    <div class=".myCert">
+        <h1>My Certificates </h1>
+        <table>
+            <tr>
+                <th>
+                    Serial Number
+                </th>
+                <th>
+                    Not Valid Before
+                </th>
+                <th>
+                    Not Valid After
+                </th>
+                <th>
+                    Revoke
+                </th>
+                <th>
+                    Download
+                </th>
+
+            </tr>
+
+            {%for cert in certs %}
+                <tr>
+                    <td>
+                        {{cert[0]}}
+                    </td>
+
+                    <td>
+                        {{cert[1]}}
+                    </td>
+
+                    <td>
+                        {{cert[2]}}
+                    </td>
+                    <td>
+                        <form  action={{url_for("revokeCert",serialN=cert[1])}} method="POST">
+                            <input type="submit" value="Revoke">
+                        </form>
+                    </td>
+                    <td>
+                        <form  action={{url_for("downloadPK12",serialN=cert[1])}} method="GET">
+                            <input type="submit" value="Download">
+                        </form>
+                    </td>
+                </tr>
+            {%endfor%}
+        </table>
+
+    </div>
 {% endblock %}

@@ -5,6 +5,7 @@ import requests
 from userinput import updateCredentials, SignIn, RevokeCert
 import hashlib
 from datetime import timedelta
+from flask import send_file,Response
 
 
 
@@ -33,10 +34,15 @@ def login():
 
             # use bcrypt on sha1 hash for better security, needs also change on db
 
+            #client_cert =  request.environ['CLIENT_CERT']
+            #client_cert_pem = request.environ['CLIENT_CERT_PEM']
+            #do stuff with cert and get uid
+            #session['uid'] = uid return user/
+
             response = requests.post(db_url + "/login", json={'uid': uid, 'pwd': password_sh1_hash},verify='/home/usr/app/CAPubKey.pem').json()
 
             if response['valid']:
-#            if True:
+            #if True:
                 #do some session management
                 session['uid'] = uid
                 session.permanent = True
@@ -68,7 +74,12 @@ def user():
         revoke = RevokeCert()
         #i should get everyting form db with the username
         (credentials,certs) = getUserInfo(uid)
-        return render_template('user.html', credentials=credentials, certs=certs,form=form, revoke=revoke)
+        if credentials["isAdmin"]==1:
+            stats = requests.get(db_url +'/certificate_stats',verify='/home/usr/app/CAPubKey.pem').json()
+            #stats = {"CurrentSN": "CurrentSN" , "nIssuedCerts": "nIssuedCerts", "nRevokedCerts": "nRevokedCerts"}
+            return render_template('admin.html', credentials=credentials, certs=certs,form=form, revoke=revoke, stats=stats)
+        else:
+            return render_template('user.html', credentials=credentials, certs=certs,form=form, revoke=revoke)
     else:
         return redirect(url_for("login"))
 
@@ -76,8 +87,16 @@ def getUserInfo(uid):
     try:
         credentials = requests.get(db_url +"/credentials", json={'uid':uid},verify='/home/usr/app/CAPubKey.pem').json()
         certs = requests.get(db_url +"/certificates", json={'uid':uid},verify='/home/usr/app/CAPubKey.pem').json()
-        #credentials = {"uid": "test", "firstname": "test", "lastname":"test", "email":"test"}
-        #certs = [("test",123),("test",123)]
+        #credentials = {"uid": "test", "firstname": "test", "lastname":"test", "email":"test", "isAdmin": 1}
+
+        #for loop over all pk12 to build list of tupples
+        #i also need a list containg only the serial number a user owns, can revoke, download. save this in session
+        #certs = [("serial_number","not_valid_before","not_valid_after","pk12"),
+        #         ("serial_number","not_valid_before","not_valid_after", "pk12" ),
+        #         ("serial_number","not_valid_before","not_valid_after","pk12"),
+        #         ("serial_number","not_valid_before","not_valid_after","pk12")]
+        #usersSNs = ["serial_number","serial_number","serial_number","serial_number"]
+        #session["usersSNs"] = usersSNs
         return (credentials , certs)
     except:
         return "failed to connect to db"
@@ -193,12 +212,15 @@ def downloadCrl():
         try:
             crl = requests.get(db_url + "/revoked",verify='/home/usr/app/CAPubKey.pem')
 
-            filename = "revocation_list.crl"
-            response = crl.content
-            response.headers.set('Content-Type', 'application/text')
-            response.headers.set('Content-Disposition', 'attachment', filename=filename)
+
+            #crl = "MIIDrwIBAzCCA3kGCSqGSIb3DQEHAaCCA2oEggNmMIIDYjCCAg8GCSqGSIb3DQEHBqCCAgAwggH8AgEAMIIB9QYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMwDgQIYZU_arf_l7cCAk4ggIIByDSliGxVa1o6Mkv8kwn2l34z_WlRtQ30BOTLqbQADcX6SL7x6_eFAbqazZ3OQ4v8DANblTwCxlufM6ZPv-WfvZvYHTBEM0eaUAFhTC24jQ1oQl59Sd5ClD_7WuMN66VMvfqiuckDNkb3qK8rtQHR3XzTZ5BqgVzBFCSzmLKXneo7yjBb3oFuf7uQj6R3kDLih3EUgAm5SQOTfkY5po8wn_ZyMrM7J3wagk40u238EdOqw0676sfUQ2654Slsfi9eGo0oTucvMFdN2ILVZ3OtCjjjuqMJXOPAoBi1YV_IHrZmEDEyg_ZY72AfeoL2XadEzTX7_1horG1uB8PVyiumYDgzByW3JOQ9Ynhrp91LKRM5Z2s_InI6lkjT0uBYz9PKcl7F9EhTq3h8XF0R5B25XP-ODApnrvEdBIljEEckmxAfWa4vpY0ByrK5otjmR3yhoqju8r5WiAnJGmjny2FzIs9RhEOcdPby0q2uH9xj11z-bI6nas44EZkbRPuVmCH6cKFCM0piGNehlIQXny8fQW3KWq6EQBvaJVtEHIXq7WpFFs2vLEmIiwPVkCQtG7wMTQ2JQUM-iQc-Q1psb5mNkMFuUvUH_2aGbDCCAUsGCSqGSIb3DQEHAaCCATwEggE4MIIBNDCCATAGCyqGSIb3DQEMCgECoIHkMIHhMBwGCiqGSIb3DQEMAQMwDgQI4toqSbQcYTICAk4gBIHAw7HZSMDZB7ymgjnG3p9HQkNKyZBWUnzNd3pcDUuxhnwC6A69SP46XOp5ZP5FBjKhwbpgfSrfebEQUHN00zOe1rlNfKLqHjC8Cd1_0J9OPlRnjJg29u4FmtPNJCmlOLqWXWErhkX-umSRC5heEJltQMbCKubwKjT2sKJ7pst0g3nfVlh-_iUFOVBA52KC0j-EUji0eTyMY849OkSNKy6-O9UOo4obcLj4YZIcs2piVMM-eDutOWeAnRgOxkmstac2MTowEwYJKoZIhvcNAQkUMQYeBABhADMwIwYJKoZIhvcNAQkVMRYEFN7QVsGf1MfbKabtVbDJnlfV8d7wMC0wITAJBgUrDgMCGgUABBRjqfgYrJxI36vGIYPlxx_AtIxzQgQIjoMa_SAo0RA="
+            return Response(
+                crl,
+                mimetype="application/octet-stream",
+                headers={"Content-disposition":
+                         "attachment; filename= pk12"})
             #somehow start downloading crl on user page
-            return redirect('/user')
+
         except:
             return "failed to connect to db"
 
@@ -213,6 +235,7 @@ def logout():
 @app.route('/revokeCert/<string:serialN>', methods=['POST'])
 def revokeCert(serialN):
     if "uid" in session:
+            #and "usersSNs" in session and serialN in session["usersSNs"]:
         uid = session["uid"]
         #does db check if sn belongs to uid before revoking/ tranfering to ca
         try:
@@ -223,6 +246,21 @@ def revokeCert(serialN):
                 return "revokation unsuccessful"
         except:
             return "failed to connect to db"
+
+@app.route('/downloadPK12/<string:serialN>', methods=['GET'])
+def downloadPK12(serialN):
+    #if "uid" in session and "usersSNs" in session and serialN in session["usersSNs"]:
+     #   (credentials , certs) = getUserInfo(uid=session["uid"])
+        #iterate over certs to find pk12 corresponding to seriralN
+
+    pk12 = "MIIDrwIBAzCCA3kGCSqGSIb3DQEHAaCCA2oEggNmMIIDYjCCAg8GCSqGSIb3DQEHBqCCAgAwggH8AgEAMIIB9QYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMwDgQIYZU_arf_l7cCAk4ggIIByDSliGxVa1o6Mkv8kwn2l34z_WlRtQ30BOTLqbQADcX6SL7x6_eFAbqazZ3OQ4v8DANblTwCxlufM6ZPv-WfvZvYHTBEM0eaUAFhTC24jQ1oQl59Sd5ClD_7WuMN66VMvfqiuckDNkb3qK8rtQHR3XzTZ5BqgVzBFCSzmLKXneo7yjBb3oFuf7uQj6R3kDLih3EUgAm5SQOTfkY5po8wn_ZyMrM7J3wagk40u238EdOqw0676sfUQ2654Slsfi9eGo0oTucvMFdN2ILVZ3OtCjjjuqMJXOPAoBi1YV_IHrZmEDEyg_ZY72AfeoL2XadEzTX7_1horG1uB8PVyiumYDgzByW3JOQ9Ynhrp91LKRM5Z2s_InI6lkjT0uBYz9PKcl7F9EhTq3h8XF0R5B25XP-ODApnrvEdBIljEEckmxAfWa4vpY0ByrK5otjmR3yhoqju8r5WiAnJGmjny2FzIs9RhEOcdPby0q2uH9xj11z-bI6nas44EZkbRPuVmCH6cKFCM0piGNehlIQXny8fQW3KWq6EQBvaJVtEHIXq7WpFFs2vLEmIiwPVkCQtG7wMTQ2JQUM-iQc-Q1psb5mNkMFuUvUH_2aGbDCCAUsGCSqGSIb3DQEHAaCCATwEggE4MIIBNDCCATAGCyqGSIb3DQEMCgECoIHkMIHhMBwGCiqGSIb3DQEMAQMwDgQI4toqSbQcYTICAk4gBIHAw7HZSMDZB7ymgjnG3p9HQkNKyZBWUnzNd3pcDUuxhnwC6A69SP46XOp5ZP5FBjKhwbpgfSrfebEQUHN00zOe1rlNfKLqHjC8Cd1_0J9OPlRnjJg29u4FmtPNJCmlOLqWXWErhkX-umSRC5heEJltQMbCKubwKjT2sKJ7pst0g3nfVlh-_iUFOVBA52KC0j-EUji0eTyMY849OkSNKy6-O9UOo4obcLj4YZIcs2piVMM-eDutOWeAnRgOxkmstac2MTowEwYJKoZIhvcNAQkUMQYeBABhADMwIwYJKoZIhvcNAQkVMRYEFN7QVsGf1MfbKabtVbDJnlfV8d7wMC0wITAJBgUrDgMCGgUABBRjqfgYrJxI36vGIYPlxx_AtIxzQgQIjoMa_SAo0RA="
+    return Response(
+        pk12,
+        mimetype="application/octet-stream",
+        headers={"Content-disposition":
+                 "attachment; filename= pk12"})
+
+
 
 
 if __name__ == "__main__":
