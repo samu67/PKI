@@ -137,9 +137,9 @@ def revoked():  # put application's code here
         #test
         content = request.get_json()
         provided_user = content["uid"]
-        provided_SN = content["serialnumber"]
+        provided_SN = int(content["serialnumber"])
         jsonheader = {"content-type": "application/json"}
-        jsondata ={"serialnumber": provided_SN}
+        jsondata ={"serialnr": provided_SN}
         r = requests.post(CA_SERVER+"revokeCert", headers=jsonheader, data=json.dumps(jsondata),verify='/home/usr/app/CAPubKey.pem')
         if True:
         #if r.status_code == requests.codes.ok:

@@ -6,6 +6,8 @@ from userinput import updateCredentials, SignIn, RevokeCert
 import hashlib
 from datetime import timedelta
 from flask import send_file,Response
+import base64
+from cryptography.hazmat.primitives.serialization import pkcs12
 
 
 
@@ -87,6 +89,7 @@ def getUserInfo(uid):
     try:
         credentials = requests.get(db_url +"/credentials", json={'uid':uid},verify='/home/usr/app/CAPubKey.pem').json()
         certs = requests.get(db_url +"/certificates", json={'uid':uid},verify='/home/usr/app/CAPubKey.pem').json()
+
         #credentials = {"uid": "test", "firstname": "test", "lastname":"test", "email":"test", "isAdmin": 1}
 
         #for loop over all pk12 to build list of tupples
@@ -97,7 +100,30 @@ def getUserInfo(uid):
         #         ("serial_number","not_valid_before","not_valid_after","pk12")]
         #usersSNs = ["serial_number","serial_number","serial_number","serial_number"]
         #session["usersSNs"] = usersSNs
-        return (credentials , certs)
+        certinfo=[]
+        usersSNs = []
+        for cert in certs["certs"]:
+            encodedbytes = cert[0]
+            print("------------------------------------------debug1----------------------------------", flush=True)
+            decodedbytes = base64.urlsafe_b64decode(encodedbytes)
+            print("------------------------------------------debug2----------------------------------", flush=True)
+        	# senc decodedbytes to client, he can then load it with pkcs12.load_key_and_certificates
+            (current_key, current_cert, _) = pkcs12.load_key_and_certificates(decodedbytes, b"A")
+            print("------------------------------------------debug3----------------------------------", flush=True)
+            nvb = str(current_cert.not_valid_before)
+            print("------------------------------------------debug4----------------------------------", flush=True)
+            nva = str(current_cert.not_valid_after)
+            print("------------------------------------------debug42----------------------------------", flush=True)
+
+            sn= str(current_cert.serial_number)
+
+            print("------------------------------------------debug43----------------------------------", flush=True)
+
+            certinfo.append((sn, nvb, nva, encodedbytes))
+            usersSNs.append(sn)
+            print("------------------------------------------debug5----------------------------------", flush=True)
+        session["usersSNs"] = usersSNs
+        return (credentials , certinfo)
     except:
         return "failed to connect to db"
 
@@ -218,7 +244,7 @@ def downloadCrl():
                 crl,
                 mimetype="application/octet-stream",
                 headers={"Content-disposition":
-                         "attachment; filename= pk12"})
+                         "attachment; filename= crl.pem"})
             #somehow start downloading crl on user page
 
         except:
@@ -239,26 +265,31 @@ def revokeCert(serialN):
         uid = session["uid"]
         #does db check if sn belongs to uid before revoking/ tranfering to ca
         try:
-            response = requests.put(db_url + "/revoked", json={'uid':uid, "serialnumber":serialN},verify='/home/usr/app/CAPubKey.pem').json()
-            if(response["Success"]==1):
-                return redirect('/user')
-            else:
-                return "revokation unsuccessful"
+            response = requests.put(db_url + "/revoked", json={'uid':uid, "serialnumber":serialN},verify='/home/usr/app/CAPubKey.pem')
+            crl = response.content
+            with open("crl.pem","wb") as f:
+                f.write(crl)
+            return redirect('/user')
         except:
             return "failed to connect to db"
 
 @app.route('/downloadPK12/<string:serialN>', methods=['GET'])
 def downloadPK12(serialN):
-    #if "uid" in session and "usersSNs" in session and serialN in session["usersSNs"]:
-     #   (credentials , certs) = getUserInfo(uid=session["uid"])
+    if "uid" in session and "usersSNs" in session and serialN in session["usersSNs"]:
+        (credentials , certs) = getUserInfo(uid=session["uid"])
         #iterate over certs to find pk12 corresponding to seriralN
-
-    pk12 = "MIIDrwIBAzCCA3kGCSqGSIb3DQEHAaCCA2oEggNmMIIDYjCCAg8GCSqGSIb3DQEHBqCCAgAwggH8AgEAMIIB9QYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMwDgQIYZU_arf_l7cCAk4ggIIByDSliGxVa1o6Mkv8kwn2l34z_WlRtQ30BOTLqbQADcX6SL7x6_eFAbqazZ3OQ4v8DANblTwCxlufM6ZPv-WfvZvYHTBEM0eaUAFhTC24jQ1oQl59Sd5ClD_7WuMN66VMvfqiuckDNkb3qK8rtQHR3XzTZ5BqgVzBFCSzmLKXneo7yjBb3oFuf7uQj6R3kDLih3EUgAm5SQOTfkY5po8wn_ZyMrM7J3wagk40u238EdOqw0676sfUQ2654Slsfi9eGo0oTucvMFdN2ILVZ3OtCjjjuqMJXOPAoBi1YV_IHrZmEDEyg_ZY72AfeoL2XadEzTX7_1horG1uB8PVyiumYDgzByW3JOQ9Ynhrp91LKRM5Z2s_InI6lkjT0uBYz9PKcl7F9EhTq3h8XF0R5B25XP-ODApnrvEdBIljEEckmxAfWa4vpY0ByrK5otjmR3yhoqju8r5WiAnJGmjny2FzIs9RhEOcdPby0q2uH9xj11z-bI6nas44EZkbRPuVmCH6cKFCM0piGNehlIQXny8fQW3KWq6EQBvaJVtEHIXq7WpFFs2vLEmIiwPVkCQtG7wMTQ2JQUM-iQc-Q1psb5mNkMFuUvUH_2aGbDCCAUsGCSqGSIb3DQEHAaCCATwEggE4MIIBNDCCATAGCyqGSIb3DQEMCgECoIHkMIHhMBwGCiqGSIb3DQEMAQMwDgQI4toqSbQcYTICAk4gBIHAw7HZSMDZB7ymgjnG3p9HQkNKyZBWUnzNd3pcDUuxhnwC6A69SP46XOp5ZP5FBjKhwbpgfSrfebEQUHN00zOe1rlNfKLqHjC8Cd1_0J9OPlRnjJg29u4FmtPNJCmlOLqWXWErhkX-umSRC5heEJltQMbCKubwKjT2sKJ7pst0g3nfVlh-_iUFOVBA52KC0j-EUji0eTyMY849OkSNKy6-O9UOo4obcLj4YZIcs2piVMM-eDutOWeAnRgOxkmstac2MTowEwYJKoZIhvcNAQkUMQYeBABhADMwIwYJKoZIhvcNAQkVMRYEFN7QVsGf1MfbKabtVbDJnlfV8d7wMC0wITAJBgUrDgMCGgUABBRjqfgYrJxI36vGIYPlxx_AtIxzQgQIjoMa_SAo0RA="
+        #pk12 = "MIIDrwIBAzCCA3kGCSqGSIb3DQEHAaCCA2oEggNmMIIDYjCCAg8GCSqGSIb3DQEHBqCCAgAwggH8AgEAMIIB9QYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMwDgQIYZU_arf_l7cCAk4ggIIByDSliGxVa1o6Mkv8kwn2l34z_WlRtQ30BOTLqbQADcX6SL7x6_eFAbqazZ3OQ4v8DANblTwCxlufM6ZPv-WfvZvYHTBEM0eaUAFhTC24jQ1oQl59Sd5ClD_7WuMN66VMvfqiuckDNkb3qK8rtQHR3XzTZ5BqgVzBFCSzmLKXneo7yjBb3oFuf7uQj6R3kDLih3EUgAm5SQOTfkY5po8wn_ZyMrM7J3wagk40u238EdOqw0676sfUQ2654Slsfi9eGo0oTucvMFdN2ILVZ3OtCjjjuqMJXOPAoBi1YV_IHrZmEDEyg_ZY72AfeoL2XadEzTX7_1horG1uB8PVyiumYDgzByW3JOQ9Ynhrp91LKRM5Z2s_InI6lkjT0uBYz9PKcl7F9EhTq3h8XF0R5B25XP-ODApnrvEdBIljEEckmxAfWa4vpY0ByrK5otjmR3yhoqju8r5WiAnJGmjny2FzIs9RhEOcdPby0q2uH9xj11z-bI6nas44EZkbRPuVmCH6cKFCM0piGNehlIQXny8fQW3KWq6EQBvaJVtEHIXq7WpFFs2vLEmIiwPVkCQtG7wMTQ2JQUM-iQc-Q1psb5mNkMFuUvUH_2aGbDCCAUsGCSqGSIb3DQEHAaCCATwEggE4MIIBNDCCATAGCyqGSIb3DQEMCgECoIHkMIHhMBwGCiqGSIb3DQEMAQMwDgQI4toqSbQcYTICAk4gBIHAw7HZSMDZB7ymgjnG3p9HQkNKyZBWUnzNd3pcDUuxhnwC6A69SP46XOp5ZP5FBjKhwbpgfSrfebEQUHN00zOe1rlNfKLqHjC8Cd1_0J9OPlRnjJg29u4FmtPNJCmlOLqWXWErhkX-umSRC5heEJltQMbCKubwKjT2sKJ7pst0g3nfVlh-_iUFOVBA52KC0j-EUji0eTyMY849OkSNKy6-O9UOo4obcLj4YZIcs2piVMM-eDutOWeAnRgOxkmstac2MTowEwYJKoZIhvcNAQkUMQYeBABhADMwIwYJKoZIhvcNAQkVMRYEFN7QVsGf1MfbKabtVbDJnlfV8d7wMC0wITAJBgUrDgMCGgUABBRjqfgYrJxI36vGIYPlxx_AtIxzQgQIjoMa_SAo0RA="
+        pk12="Error"
+        for cert in certs:
+            (sn,_,_,certbytes) = cert
+            print(str(sn) +" "+ str(serialN), flush=True)
+            if (sn==serialN):
+                pk12=certbytes
     return Response(
         pk12,
         mimetype="application/octet-stream",
         headers={"Content-disposition":
-                 "attachment; filename= pk12"})
+                 "attachment; filename= certificate"})
 
 
 

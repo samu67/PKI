@@ -64,8 +64,8 @@ class CA:
             datetime.datetime.today()
         ).build()
         self.crl = self.crl.add_revoked_certificate(revokedcert)
-        self.crl = self.crl.last_update(datetime.datetime.utcnow())
-        self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(day=datetime.datetime.utcnow().day+1))
+        #self.crl = self.crl.last_update(datetime.datetime.utcnow())
+        #self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(day=datetime.datetime.utcnow().day+1))
         return self.crl.sign(private_key=self.ca_privatekey, algorithm=hashes.SHA256()).public_bytes(serialization.Encoding.PEM)
 
 
