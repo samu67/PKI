@@ -41,7 +41,13 @@ def credentials():  # put application's code here
         content = request.get_json()
         provided_user = content["uid"]
         match = users.query.filter_by(uid = provided_user).first()
-        data = {"uid": match.uid, "firstname": match.firstname, "lastname":match.lastname, "email":match.email}
+        print("before query")
+        adminmatch = CA_admins.query.filter_by(uid = provided_user).all()
+        print("after query")
+        isAdmin = 0
+        if( len(adminmatch) == 1):
+            isAdmin=1
+        data = {"uid": match.uid, "firstname": match.firstname, "lastname":match.lastname, "email":match.email, "isAdmin":isAdmin}
         return data
     #PUT: Update user credentials
     else:
@@ -142,10 +148,7 @@ def revoked():  # put application's code here
             statmatch = stats.query.all()[0]
             statmatch.nRevokedCerts +=1
             db.session.commit()
-            data = {"Success": 1}
-        else:
-            data = {"Success": 0}
-        return data
+        return r.content
 
 @app.route('/certificate_stats', methods=['GET'])
 def get_Certificate_Stats():  # put application's code here
