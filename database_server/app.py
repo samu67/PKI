@@ -10,9 +10,11 @@ import base64
 from cryptography import x509
 
 app = Flask(__name__)
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@localhost/imovies'
+#app.config['SECRET_KEY'] = 'password'
 db = SQLAlchemy(app)
-from db import Credentials, userID_certs, userID_passwdHash, stats
+from db import users, userID_certs, userID_passwdHash, stats, CA_admins
 CA_SERVER = "https://ca.imovies.com/"
 CA_SERVER_CRL= ""
 
@@ -27,7 +29,7 @@ def login():  # put application's code here
     content = request.get_json()
     provided_user = content["uid"]
     provided_password = content["pwd"]
-    match = Credentials.query.filter_by(uid = provided_user, pwd = provided_password).all()
+    match = users.query.filter_by(uid = provided_user, pwd = provided_password).all()
     valid = len(match) == 1
     data = {"uid": provided_user, "valid": valid} # Your data in JSON-serializable type
     return data
@@ -38,7 +40,7 @@ def credentials():  # put application's code here
     if request.method == 'GET':
         content = request.get_json()
         provided_user = content["uid"]
-        match = Credentials.query.filter_by(uid = provided_user).first()
+        match = users.query.filter_by(uid = provided_user).first()
         data = {"uid": match.uid, "firstname": match.firstname, "lastname":match.lastname, "email":match.email}
         return data
     #PUT: Update user credentials
@@ -49,7 +51,7 @@ def credentials():  # put application's code here
         provided_lastname = content["lastname"]
         provided_firstname =content["firstname"]
         provided_email = content["email"]
-        match = Credentials.query.filter_by(uid = provided_user).first()
+        match = users.query.filter_by(uid = provided_user).first()
         if(provided_firstname != ""):
             match.firstname = provided_firstname
         if(provided_lastname != ""):
@@ -153,14 +155,17 @@ def get_Certificate_Stats():  # put application's code here
 
 @app.route('/fill_db')
 def fill_db():  # inactivate before deploying!
-    users = [Credentials(uid="lb", lastname="Bruegger", firstname="Lukas", email="lb@movies.ch", pwd="8d0547d4b27b689c3a3299635d859f7d50a2b805"),
-              Credentials(uid="ps", lastname="Schaller", firstname="Patrick", email="ps@movies.ch", pwd="6e58f76f5be5ef06a56d4eeb2c4dc58be3dbe8c7"),
-              Credentials(uid="ms", lastname="Schlaepfer", firstname="Michael", email="ms@movies.ch", pwd="4d7de8512bd584c3137bb80f453e61306b148875"),
-              Credentials(uid="a3", lastname="Anderson", firstname="Andres Alan", email="and@movies.ch", pwd="6b97f534c330b5cc78d4cc23e01e48be3377105b"),
+    userlist = [users(uid="lb", lastname="Bruegger", firstname="Lukas", email="lb@movies.ch", pwd="8d0547d4b27b689c3a3299635d859f7d50a2b805"),
+              users(uid="ps", lastname="Schaller", firstname="Patrick", email="ps@movies.ch", pwd="6e58f76f5be5ef06a56d4eeb2c4dc58be3dbe8c7"),
+              users(uid="ms", lastname="Schlaepfer", firstname="Michael", email="ms@movies.ch", pwd="4d7de8512bd584c3137bb80f453e61306b148875"),
+              users(uid="a3", lastname="Anderson", firstname="Andres Alan", email="and@movies.ch", pwd="6b97f534c330b5cc78d4cc23e01e48be3377105b"),
               ]
     #        user = db.Credentials(userID="", lastName ="",firstName="", email="", pwd="")
-    for user in users:
+    for user in userlist:
         db.session.add(user)
+
+    db.session.add(CA_admins(uid="a3"))
+
     initialstats = stats(nIssuedCerts=0,nRevokedCerts=0,currentSN=0)
     db.session.add(initialstats)
 

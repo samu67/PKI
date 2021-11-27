@@ -3,7 +3,7 @@ from app import db
 
 
 
-class Credentials(db.Model):
+class users(db.Model):
     uid = db.Column(db.String(20), primary_key=True)
     lastname = db.Column(db.String(20), nullable=True)
     firstname = db.Column(db.String(20), nullable=True)
@@ -12,6 +12,10 @@ class Credentials(db.Model):
 
     def __repr__(self):
         return '<New Credential %r> %self.userID'
+
+class CA_admins(db.Model):
+    uid = db.Column(db.String(20), primary_key=True)
+
 
 class userID_passwdHash(db.Model):
     uid = db.Column(db.String(20), primary_key=True)
