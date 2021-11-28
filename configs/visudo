@@ -1,0 +1,4 @@
+www-data www=(root) NOPASSWD: /bin/systemctl restart nginx
+
+# in /etc/sudoers.d/restart_nginx
+# To add it: `sudo visudo --file=/etc/sudoers.d/restart_nginx` as root
