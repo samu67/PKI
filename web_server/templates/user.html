@@ -173,12 +173,12 @@
                         {{cert[2]}}
                     </td>
                     <td>
-                        <form  action={{url_for("revokeCert",serialN=cert[1])}} method="POST">
+                        <form  action={{url_for("revokeCert",serialN=cert[0])}} method="POST">
                             <input type="submit" value="Revoke">
                         </form>
                     </td>
                     <td>
-                        <form  action={{url_for("downloadPK12",serialN=cert[1])}} method="GET">
+                        <form  action={{url_for("downloadPK12",serialN=cert[0])}} method="GET">
                             <input type="submit" value="Download">
                         </form>
                     </td>

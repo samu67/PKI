@@ -117,7 +117,7 @@ def getUserInfo(uid):
 
             sn= str(current_cert.serial_number)
 
-            print("------------------------------------------debug43----------------------------------", flush=True)
+            print(f"sn: {str(current_cert.serial_number)}", flush=True)
 
             certinfo.append((sn, nvb, nva, encodedbytes))
             usersSNs.append(sn)

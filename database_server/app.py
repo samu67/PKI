@@ -11,7 +11,7 @@ from cryptography import x509
 
 app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@localhost/imovies'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:WYN98h2oNBDM4pwpnHXpPJczhiVoktEhaPaB8owuWuj6zh2ThfpBdpp@localhost/imovies'
 #app.config['SECRET_KEY'] = 'password'
 db = SQLAlchemy(app)
 from db import users, userID_certs, userID_passwdHash, stats, CA_admins
