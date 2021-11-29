@@ -51,7 +51,7 @@ with open(f"out/_CACert.pem", "wb") as f:
     f.write(CACert.public_bytes(encoding=serialization.Encoding.PEM))
     f.close()
 
-def gen_key_cert_signed(ca_name, CAkey, Server_name, password=None):
+def gen_key_cert_signed(ca_name, CAkey, Server_name, encrypt=True, password=None):
 
     if password == None:
         password = token_urlsafe(32)
@@ -59,24 +59,32 @@ def gen_key_cert_signed(ca_name, CAkey, Server_name, password=None):
     # Generate private and public key
     Key = ec.generate_private_key(ec.SECP384R1())
     PubKey = Key.public_key()
+
+    if encrypt:
+        enc = serialization.BestAvailableEncryption(password.encode())
+    else:
+        enc = serialization.NoEncryption()
+
     with open(f"out/{Server_name}-Key.pem", "wb") as f:
         f.write(Key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.BestAvailableEncryption(password.encode()),
+        encryption_algorithm=enc,
     ))
         f.close()
 
-    with open(f"out/{Server_name}-KeyPassword.txt", "w") as f:
-        f.write(password)
-        f.write("\n")
-        f.close()
+    if encrypt:
+        with open(f"out/{Server_name}-KeyPassword.txt", "w") as f:
+            f.write(password)
+            f.write("\n")
+            f.close()
 
     # Generate certificate
-        subject = x509.Name([
+    subject = x509.Name([
         x509.NameAttribute(NameOID.COMMON_NAME, Server_name + ".imovies.com"),
     ])
-        db_cert = x509.CertificateBuilder().subject_name(
+    
+    db_cert = x509.CertificateBuilder().subject_name(
         subject
     ).issuer_name(
         ca_name
@@ -95,9 +103,9 @@ def gen_key_cert_signed(ca_name, CAkey, Server_name, password=None):
         f.write(db_cert.public_bytes(encoding=serialization.Encoding.PEM))
         f.close()
 
-gen_key_cert_signed(ca_name,CAkey, "ca")
-gen_key_cert_signed(ca_name,CAkey, "db")
-gen_key_cert_signed(ca_name,CAkey, "www")
-gen_key_cert_signed(ca_name,CAkey, "fw")
-gen_key_cert_signed(ca_name,CAkey, "bkp")
+gen_key_cert_signed(ca_name,CAkey, "ca", encrypt=False)
+gen_key_cert_signed(ca_name,CAkey, "db", encrypt=False)
+gen_key_cert_signed(ca_name,CAkey, "www", encrypt=False)
+gen_key_cert_signed(ca_name,CAkey, "fw", encrypt=False)
+gen_key_cert_signed(ca_name,CAkey, "bkp", encrypt=False)
 

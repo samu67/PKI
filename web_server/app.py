@@ -9,8 +9,6 @@ from flask import send_file,Response
 import base64
 from cryptography.hazmat.primitives.serialization import pkcs12
 
-
-
 #context = SSL.Context(SSL.TLS1_3_VERSION)
 #context.load_cert_chain('/etc/Flask/certs/webserver_cert.pem', '/etc/Flask/private/webserver_key.pem')
 #context.verify_mode = SSL.CERT_OPTIONAL
@@ -105,24 +103,15 @@ def getUserInfo(uid):
         usersSNs = []
         for cert in certs["certs"]:
             encodedbytes = cert[0]
-            print("------------------------------------------debug1----------------------------------", flush=True)
             decodedbytes = base64.urlsafe_b64decode(encodedbytes)
-            print("------------------------------------------debug2----------------------------------", flush=True)
         	# senc decodedbytes to client, he can then load it with pkcs12.load_key_and_certificates
             (current_key, current_cert, _) = pkcs12.load_key_and_certificates(decodedbytes, b"A")
-            print("------------------------------------------debug3----------------------------------", flush=True)
             nvb = str(current_cert.not_valid_before)
-            print("------------------------------------------debug4----------------------------------", flush=True)
             nva = str(current_cert.not_valid_after)
-            print("------------------------------------------debug42----------------------------------", flush=True)
-
-            sn = str(current_cert.serial_number)
-
+            sn= str(current_cert.serial_number)
             print(f"sn: {str(current_cert.serial_number)}", flush=True)
-
-            certinfo.append((sn, nvb, nva, encodedbytes))
+            certinfo.append((sn, nvb, nva, decodedbytes))
             usersSNs.append(sn)
-            print("------------------------------------------debug5----------------------------------", flush=True)
         session["usersSNs"] = usersSNs
         return (credentials , certinfo)
     except:
@@ -295,7 +284,7 @@ def downloadPK12(serialN):
         pk12,
         mimetype="application/octet-stream",
         headers={"Content-disposition":
-                 "attachment; filename= certificate"})
+                 "attachment; filename= certificate.p12"})
 
 
 
