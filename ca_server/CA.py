@@ -14,6 +14,14 @@ import datetime
 
 class CA:
     def __init__(self, keyfilepath):
+        try:
+            with open("CRL.pem", "rb")as crlfile:
+                self.crl = x509.load_pem_x509_crl(crlfile.read())
+        except:
+            self.crl = x509.CertificateRevocationListBuilder()
+            self.crl = self.crl.issuer_name(self.ca_name)
+            self.crl = self.crl.last_update(datetime.datetime.utcnow())
+            self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 10))
         keyfile = open(keyfilepath, "r")
         self.rawkey = keyfile.read()
         keyfile.close()
@@ -21,10 +29,6 @@ class CA:
         self.ca_name = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
         ])
-        self.crl = x509.CertificateRevocationListBuilder()
-        self.crl = self.crl.issuer_name(self.ca_name)
-        self.crl = self.crl.last_update(datetime.datetime.utcnow())
-        self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(day=datetime.datetime.utcnow().day+1))
         return
 
     # Issues certificate.
@@ -66,7 +70,10 @@ class CA:
         self.crl = self.crl.add_revoked_certificate(revokedcert)
         #self.crl = self.crl.last_update(datetime.datetime.utcnow())
         #self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(day=datetime.datetime.utcnow().day+1))
-        return self.crl.sign(private_key=self.ca_privatekey, algorithm=hashes.SHA256()).public_bytes(serialization.Encoding.PEM)
+        crlpem = self.crl.sign(private_key=self.ca_privatekey, algorithm=hashes.SHA256()).public_bytes(serialization.Encoding.PEM)
+        with open("CRL.pem", "wb") as crlfile:
+            crlfile.write(crlpem)
+        return crlpem
 
 
     # Returns current CRL in PEM format
