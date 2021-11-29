@@ -8,6 +8,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import pkcs12
 import base64
 from cryptography import x509
+from cryptography.fernet import Fernet
+import bcrypt
+import base64
 
 app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
@@ -17,7 +20,6 @@ db = SQLAlchemy(app)
 from db import users, userID_certs, userID_passwdHash, stats, CA_admins
 CA_SERVER = "https://ca.imovies.com/"
 CA_SERVER_CRL= ""
-
 
 @app.route('/')
 def debug():  # put application's code here
@@ -29,8 +31,10 @@ def login():  # put application's code here
     content = request.get_json()
     provided_user = content["uid"]
     provided_password = content["pwd"]
-    match = users.query.filter_by(uid = provided_user, pwd = provided_password).all()
-    valid = len(match) == 1
+    #todo bcrypt
+    match = users.query.filter_by(uid = provided_user).first()
+    hashedpwd= match.pwd.encode("utf-8")
+    valid = bcrypt.checkpw(provided_password.encode("utf-8"), hashedpwd)
     data = {"uid": provided_user, "valid": valid} # Your data in JSON-serializable type
     return data
 
@@ -41,11 +45,9 @@ def credentials():  # put application's code here
         content = request.get_json()
         provided_user = content["uid"]
         match = users.query.filter_by(uid = provided_user).first()
-        print("before query")
         adminmatch = CA_admins.query.filter_by(uid = provided_user).all()
-        print("after query")
         isAdmin = 0
-        if( len(adminmatch) == 1):
+        if(len(adminmatch) == 1):
             isAdmin=1
         data = {"uid": match.uid, "firstname": match.firstname, "lastname":match.lastname, "email":match.email, "isAdmin":isAdmin}
         return data
@@ -65,7 +67,7 @@ def credentials():  # put application's code here
         if(provided_email != ""):
             match.email = provided_email
         if(provided_password != ""):
-            match.pwd = provided_password
+            match.pwd = bcrypt.hashpw((provided_password).encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         db.session.commit()
         data = {"Success": 1}
         return data
@@ -79,7 +81,8 @@ def certificates():  # put application's code here
         matches = userID_certs.query.filter_by(uid = provided_user, revoked=False).all()
         certs=[]
         for match in matches:
-            certs.append((match.cert, match.serialnumber))
+            #todo fernet
+            certs.append((decryptcert(match.cert), match.serialnumber))
         #does not return user
         data = {"certs": certs}
         return data
@@ -101,14 +104,15 @@ def certificates():  # put application's code here
         #update cert database
         #have to find new serial number
         #possible race condition?
-        match = stats.query.all() [0]
+        match = stats.query.all()[0]
         match.nIssuedCerts +=1
         #str function would convert bigint to scientific notation
         stringSN = f'{SN}'
         match.currentSN = stringSN
         #todo later
         b64cert = base64.urlsafe_b64encode(r.content).decode("ASCII")
-        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=b64cert, revoked=False)
+        #todo fernet
+        new_cert_entry = userID_certs(serialnumber = stringSN , uid=provided_user, cert=encryptcert(b64cert), revoked=False)
         db.session.add(new_cert_entry)
         db.session.commit()
 
@@ -156,8 +160,26 @@ def get_Certificate_Stats():  # put application's code here
     data={"CurrentSN": match.currentSN, "nIssuedCerts": match.nIssuedCerts, "nRevokedCerts": match.nRevokedCerts}
     return data
 
-@app.route('/fill_db')
-def fill_db():  # inactivate before deploying!
+def reset_db(): 
+    db.session.rollback()
+    usermatch= users.query.all()
+    for user in usermatch:
+        db.session.delete(user)
+
+    certmatch= userID_certs.query.all()
+    for cert in certmatch:
+        db.session.delete(cert)
+
+    adminmatch= CA_admins.query.all()
+    for admin in adminmatch:
+        db.session.delete(admin)
+
+    statmatch= stats.query.all()
+    for stat in statmatch:
+        db.session.delete(stat)    
+
+    db.session.commit()
+    
     userlist = [users(uid="lb", lastname="Bruegger", firstname="Lukas", email="lb@movies.ch", pwd="8d0547d4b27b689c3a3299635d859f7d50a2b805"),
               users(uid="ps", lastname="Schaller", firstname="Patrick", email="ps@movies.ch", pwd="6e58f76f5be5ef06a56d4eeb2c4dc58be3dbe8c7"),
               users(uid="ms", lastname="Schlaepfer", firstname="Michael", email="ms@movies.ch", pwd="4d7de8512bd584c3137bb80f453e61306b148875"),
@@ -167,13 +189,31 @@ def fill_db():  # inactivate before deploying!
     for user in userlist:
         db.session.add(user)
 
-    db.session.add(CA_admins(uid="a3"))
+    admin =CA_admins(uid="a3")
+    db.session.add(admin)
 
     initialstats = stats(nIssuedCerts=0,nRevokedCerts=0,currentSN=0)
     db.session.add(initialstats)
 
     db.session.commit()
+    
     return "Success"
+
+
+def encryptcert(cert):
+    with open("dbkey.txt", 'rb') as f:
+        key = f.read()
+    c = Fernet(key)
+    enccert = c.encrypt((cert.encode('utf-8'))).decode("utf-8")
+    return enccert
+
+
+def decryptcert(cert):
+    with open("dbkey.txt", 'rb') as f:
+        key = f.read()
+    c = Fernet(key)
+    deccert = (c.decrypt(cert.encode('utf-8'))).decode('utf-8')
+    return deccert
 
 
 if __name__ == '__main__':
