@@ -122,28 +122,6 @@
 
                     </form>
 
-
-              </tr>
-              <tr>
-                <td>Password</td>
-
-                  <form action={{url_for("updatePassword")}} method="POST">
-                    {{form.hidden_tag()}}
-                    <td>
-
-                        {{form.current_password(class="form-control form-control-lg")}}
-                    </td>
-
-                    <td>
-                      {{form.password1(class="form-control form-control-lg")}}
-                    </td>
-                      <td>
-                          {{form.password2(class="form-control form-control-lg")}}
-                      </td>
-                      <td>
-                        {{form.update(class="btn btn-outline-info")}}
-                     </td>
-                  </form>
               </tr>
             </tbody>
         </table>
