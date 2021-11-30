@@ -272,7 +272,7 @@ def revokeCert(serialN):
         try:
             response = requests.put(db_url + "/revoked", json={'uid':uid, "serialnumber":serialN},verify='/home/usr/app/CAPubKey.pem')
             crl = response.content
-            with open("crl.pem","wb") as f:
+            with open("/home/usr/app/crl.pem","wb") as f:
                 f.write(crl)
             print(f'{uid} has revoked cert: {serialN}'.format(uid=uid, serialN=serialN), flush=True)
             return redirect('/user')
