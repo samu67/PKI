@@ -14,6 +14,13 @@ import datetime
 
 class CA:
     def __init__(self, keyfilepath):
+        keyfile = open(keyfilepath, "r")
+        self.rawkey = keyfile.read()
+        keyfile.close()
+        self.ca_privatekey = serialization.load_pem_private_key((self.rawkey).encode("utf-8"), password=b"password")
+        self.ca_name = x509.Name([
+            x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
+        ])
         try:
             with open("CRL.pem", "rb")as crlfile:
                 self.crl = x509.load_pem_x509_crl(crlfile.read())
@@ -22,13 +29,6 @@ class CA:
             self.crl = self.crl.issuer_name(self.ca_name)
             self.crl = self.crl.last_update(datetime.datetime.utcnow())
             self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 10))
-        keyfile = open(keyfilepath, "r")
-        self.rawkey = keyfile.read()
-        keyfile.close()
-        self.ca_privatekey = serialization.load_pem_private_key((self.rawkey).encode("utf-8"), password=b"password")
-        self.ca_name = x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
-        ])
         return
 
     # Issues certificate.
