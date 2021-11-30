@@ -22,8 +22,19 @@ class CA:
             x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
         ])
         try:
-            with open("CRL.pem", "rb")as crlfile:
-                self.crl = x509.load_pem_x509_crl(crlfile.read())
+            with open("RevokedSNs.txt", "r")as revsn:
+                self.crl = x509.CertificateRevocationListBuilder()
+                self.crl = self.crl.issuer_name(self.ca_name)
+                self.crl = self.crl.last_update(datetime.datetime.utcnow())
+                self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 10))
+                serialnumbers  = revsn.readlines()
+                with open("CRL.pem", "rb") as crlfile:
+                    oldcrl = x509.load_pem_x509_crl()
+                    for number in serialnumbers:
+                        revokedcert = oldcrl.get_revoked_certificate_by_serial_number(int(number))
+                        self.crl = self.crl.add_revoked_certificate(revokedcert)
+
+
         except:
             self.crl = x509.CertificateRevocationListBuilder()
             self.crl = self.crl.issuer_name(self.ca_name)
@@ -73,6 +84,8 @@ class CA:
         crlpem = self.crl.sign(private_key=self.ca_privatekey, algorithm=hashes.SHA256()).public_bytes(serialization.Encoding.PEM)
         with open("CRL.pem", "wb") as crlfile:
             crlfile.write(crlpem)
+        with open("RevokedSNs.txt", "a") as revsn:
+            revsn.write(serialnr)
         return crlpem
 
 
