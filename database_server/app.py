@@ -33,6 +33,8 @@ def login():  # put application's code here
     provided_password = content["pwd"]
     #todo bcrypt
     match = users.query.filter_by(uid = provided_user).first()
+    if not match:
+        return {"uid": provided_user, "valid": False}
     hashedpwd= match.pwd.encode("utf-8")
     valid = bcrypt.checkpw(provided_password.encode("utf-8"), hashedpwd)
     data = {"uid": provided_user, "valid": valid} # Your data in JSON-serializable type
