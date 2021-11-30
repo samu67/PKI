@@ -26,9 +26,10 @@ def login():
 
     if "uid" in session:
         return redirect(url_for('user'))
-    elif 'CLIENT_CERT' in request.environ:
+    elif 'CLIENT_CERT' in request.environ and request.environ.get('CLIENT_CERT') != "":
+        print(request.environ.get('CLIENT_CERT'))
         s_dn = request.environ.get('CLIENT_CERT')
-        uid = dict([x.split('=') for x in s_dn.split('/')[1:]])['CN']
+        uid = s_dn.split('=')[1] 
         session['uid'] = uid
         session['certAuth'] = 1
         session.permanent = True
@@ -45,6 +46,7 @@ def login():
                 response = requests.post(db_url + "/login", json={'uid': uid, 'pwd': password_sh1_hash}, verify='/home/usr/app/CAPubKey.pem').json()
                 if response['valid']:
                     session['uid'] = uid
+                    session['certAuth'] = 0
                     session.permanent = True
                     print('{uid} has logged in with password'.format(uid=uid), flush=True)
                     return redirect(url_for('user'))
@@ -79,7 +81,8 @@ def user():
             stats = requests.get(db_url +'/certificate_stats',verify='/home/usr/app/CAPubKey.pem').json()
             return render_template('admin.html', credentials=credentials, certs=certs, form=form, revoke=revoke, stats=stats)
         else:
-            return render_template('user.html', credentials=credentials, certs=certs,form=form, revoke=revoke)
+           session["isAdmin"] = 0
+           return render_template('user.html', credentials=credentials, certs=certs,form=form, revoke=revoke)
     else:
         return redirect(url_for("login"))
 
@@ -219,7 +222,15 @@ def requestNewCert(uid):
         response = requests.post(db_url + "/certificates", json={'uid':uid},verify='/home/usr/app/CAPubKey.pem').json()
         if response["cert"] != None:
             print('user: {uid} has requested new certificate'.format(uid=uid), flush=True)
-            return redirect('/user')
+            #return redirect('/user')
+            decodedbytes = base64.urlsafe_b64decode( response["cert"])
+
+            return Response(
+                decodedbytes ,
+                mimetype="application/octet-stream",
+                headers={"Content-disposition":
+                 "attachment; filename= certificate.p12"})
+
         else:
             return "failed to issue new cert"
     except:
