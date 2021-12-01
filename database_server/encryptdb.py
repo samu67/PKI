@@ -42,7 +42,7 @@ def reset_db():
     db.session.add(initialstats)
 
     db.session.commit()
-    
+    print("DATABASE RESET", flush=True)
     return "Success"
 
 def gencertkey():

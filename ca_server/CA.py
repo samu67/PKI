@@ -21,12 +21,13 @@ class CA:
         self.ca_name = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
         ])
+        inittime = datetime.datetime.utcnow()
         try:
             with open("RevokedSNs.txt", "r")as revsn:
                 self.crl = x509.CertificateRevocationListBuilder()
                 self.crl = self.crl.issuer_name(self.ca_name)
-                self.crl = self.crl.last_update(datetime.datetime.utcnow())
-                self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 10))
+                self.crl = self.crl.last_update(inittime)
+                self.crl = self.crl.next_update(inittime.replace(year=datetime.datetime.utcnow().year + 10))
                 serialnumbers  = revsn.readlines()
                 with open("CRL.pem", "rb") as crlfile:
                     oldcrl = x509.load_pem_x509_crl()
@@ -38,8 +39,9 @@ class CA:
         except:
             self.crl = x509.CertificateRevocationListBuilder()
             self.crl = self.crl.issuer_name(self.ca_name)
-            self.crl = self.crl.last_update(datetime.datetime.utcnow())
-            self.crl = self.crl.next_update(datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year + 10))
+            self.crl = self.crl.last_update(inittime)
+            self.crl = self.crl.next_update(inittime.replace(year=datetime.datetime.utcnow().year + 10))
+        print("CA: CA initialized", flush=True)
         return
 
     # Issues certificate.
@@ -53,6 +55,7 @@ class CA:
         subject = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, name),
         ])
+        sn = x509.random_serial_number()
         cert = x509.CertificateBuilder().subject_name(
             subject
         ).issuer_name(
@@ -60,13 +63,14 @@ class CA:
         ).public_key(
             clientkey
         ).serial_number(
-            x509.random_serial_number()
+            sn
         ).not_valid_before(
             datetime.datetime.utcnow()
         ).not_valid_after(
             datetime.datetime.utcnow().replace(year=datetime.datetime.utcnow().year+1)
         ).sign(self.ca_privatekey, hashes.SHA256())
         pkcs12cert = pkcs12.serialize_key_and_certificates(name=name.encode("utf-8"), key=clientprivkey, cert=cert, encryption_algorithm=serialization.BestAvailableEncryption(b"A"), cas=None)
+        print("CA: Certificate issued for subject " + str(name) + " with serial number " + str(sn), flush=True)
         return pkcs12cert
 
     # Revokes certificate using information provided by the datatbase (currently we assume the provided data consists of
@@ -86,9 +90,11 @@ class CA:
             crlfile.write(crlpem)
         with open("RevokedSNs.txt", "a") as revsn:
             revsn.write(serialnr)
+        print("CA: Certificate revoked for serial number " + str(serialnr), flush=True)
         return crlpem
 
 
     # Returns current CRL in PEM format
     def getCRL(self):
+        print("CA: CRL requested", flush=True)
         return self.crl.sign(private_key=self.ca_privatekey, algorithm=hashes.SHA256()).public_bytes(serialization.Encoding.PEM)

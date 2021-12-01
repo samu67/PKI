@@ -63,14 +63,19 @@ def credentials():  # put application's code here
         provided_email = content["email"]
         match = users.query.filter_by(uid = provided_user).first()
         if(provided_firstname != ""):
+        	print("User credentials changed: Firstname = " + str(provided_firstname)+ " for user: " +str(provided_user), flush=True)
             match.firstname = provided_firstname
         if(provided_lastname != ""):
             match.lastname = provided_lastname
+            print("User credentials changed: lastname = " + str(provided_lastname)+ " for user: " +str(provided_user), flush=True)
         if(provided_email != ""):
             match.email = provided_email
+            print("User credentials changed: email = " + str(provided_email)+ " for user: " +str(provided_user), flush=True)
         if(provided_password != ""):
             match.pwd = bcrypt.hashpw((provided_password).encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            print("Password changed for user: " +str(provided_user), flush=True)
         db.session.commit()
+
         data = {"Success": 1}
         return data
 
@@ -119,7 +124,7 @@ def certificates():  # put application's code here
         db.session.commit()
 
         #encode when it arrives
-
+		print("Certificate issued with Serial Number: " + str(provided_SN), flush=True)
         data = {"uid":provided_user,"cert": b64cert, "serialnumber": SN}
         return data
 
@@ -154,6 +159,7 @@ def revoked():  # put application's code here
             statmatch = stats.query.all()[0]
             statmatch.nRevokedCerts +=1
             db.session.commit()
+        print("Certificate revoked with Serial Number: " + str(provided_SN), flush=True)
         return r.content
 
 @app.route('/certificate_stats', methods=['GET'])
@@ -198,7 +204,7 @@ def reset_db():
     db.session.add(initialstats)
 
     db.session.commit()
-    
+    print("DATABASE RESET", flush=True)
     return "Success"
 
 
