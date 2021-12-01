@@ -1,5 +1,7 @@
 # ASL Project
 
+We tried to provide you with all the details you need to conduct the review of our system. We hope everything will work and you have enough information. In case you need more contact us at [ccharollais@ethz.ch](mailto:ccharollais@ethz.ch) and we will try to help you.
+
 ## Components
 Our submission comprises six virtual machines:
 - The firewall: `fw.ova`
