@@ -89,7 +89,7 @@ class CA:
         with open("CRL.pem", "wb") as crlfile:
             crlfile.write(crlpem)
         with open("RevokedSNs.txt", "a") as revsn:
-            revsn.write(serialnr)
+            revsn.write(str(serialnr))
         print("CA: Certificate revoked for serial number " + str(serialnr), flush=True)
         return crlpem
 
