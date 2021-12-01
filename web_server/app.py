@@ -262,6 +262,7 @@ def logout():
     session.pop('certAuth', None)
     session.pop('isAdmin', None)
     session.pop("usersSNs", None)
+    session.clear()
 
     return redirect(url_for("login"))
 
