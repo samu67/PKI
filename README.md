@@ -38,7 +38,7 @@ The network interfaces should be setup properly but in case it is not here are n
 The client machine is configured with a regular user account `usr` whose password is "`qwertyuiop`" and the root user's password is also "`qwertyuiop`". 
 
 ### Client & CA admin interface
-Using the client vm, you should be able to navigate to the client web interface by simply navigating to `www.imovies.com` using Firefox. The certificate for Firefox to recognize `www.imovies.com` as legitimate is already installed in Firefox but is also available in the home directory as `CACert.pem`. A user certificate is also available to login as a regular user (`cert-user.p12`) and another one is available to log in with a user which is CA admin to access the CA administration panel (`cert-ca-admin.p12`). In order to install them you need to go in the Firefox preferences > Privacy & security > Certificates > View Certificates > Your certificates > import... On import, you will be prompted for the keyfile password which is "`A`".
+Using the client vm, you should be able to navigate to the client web interface by simply navigating to `www.imovies.com` using Firefox. The certificate for Firefox to recognize `www.imovies.com` as legitimate is already installed in Firefox but is also available in the home directory as `CACert.pem`. A user certificate (`cert-user.p12`) is also available to login as a regular user and another one (`cert-ca-admin.p12`) is available to log in as the user `a3` who is CA admin to access the CA administration panel. In order to install them you need to go in the Firefox preferences > Privacy & security > Certificates > View Certificates > Your certificates > import... On import, you will be prompted for the keyfile password which is "`A`".
 
 The usernames and passwords of registered users are listed below:
 
@@ -48,6 +48,7 @@ The usernames and passwords of registered users are listed below:
 | ps       | KramBamBuli |
 | ms       | MidbSvlJ    |
 | a3       | Astrid      |
+
 
 For easier access to the system, we provide NAT port forwarding on the NAT interface of the firewall. Using this, it is possible to access the following resources using the following aliases:
 
